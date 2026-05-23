@@ -1,79 +1,1026 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <title>AI 프라이싱 샌드박스 데모</title>
-    <style>
-        /* 화면 디자인 (CSS) */
-        body { font-family: 'Malgun Gothic', sans-serif; background-color: #f4f7f6; color: #333; padding: 20px; }
-        .dashboard { max-width: 1000px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .controls { display: flex; gap: 15px; margin-bottom: 20px; padding: 15px; background: #eef2f5; border-radius: 8px; }
-        .metrics { display: flex; gap: 15px; margin-bottom: 20px; }
-        .metric-card { flex: 1; padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 8px; text-align: center; }
-        .metric-card h3 { margin: 0 0 10px 0; font-size: 14px; color: #666; }
-        .metric-card .value { font-size: 24px; font-weight: bold; color: #2c3e50; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
-        th { background-color: #f8f9fa; }
-        .flip { color: white; background-color: #e74c3c; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
-        .btn { padding: 10px 20px; background-color: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .btn:hover { background-color: #2980b9; }
-    </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pricing Sandbox — 제로 리스크 프라이싱 시뮬레이터 · KAIST IMMS</title>
+<meta name="description" content="LLM 다에이전트 시뮬레이션으로 재화 특성별 가격 탄력성과 구전 승수 효과를 측정하는 제로 리스크 프라이싱 샌드박스. KAIST IMMS 졸업 프로젝트 데모." />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+
+<style>
+:root{
+  --paper:#F4F1E9;        /* warm paper background */
+  --paper-2:#FBF9F3;      /* card surface */
+  --paper-3:#EFEBE0;      /* sunken / inset */
+  --ink:#1C1815;          /* near-black warm */
+  --ink-2:#5A5249;        /* secondary text */
+  --ink-3:#938A7C;        /* tertiary / muted */
+  --line:#E0D8C8;         /* hairline */
+  --line-2:#CFC5B0;       /* stronger hairline */
+  --accent:#C0402A;       /* vermilion seal-red */
+  --accent-2:#9A3320;
+  --accent-soft:#F2E1D8;
+  --search:#27537F;       /* cool — search good (monitor) */
+  --search-soft:#E2EAF1;
+  --exp:#A8552C;          /* warm — experience good (cosmetic) */
+  --exp-soft:#F2E5D7;
+  --buy:#3C7A52;          /* purchase / yes */
+  --buy-soft:#E4EFE6;
+  --no:#B23A2A;           /* decline / no */
+  --no-soft:#F4E2DD;
+  --flip:#B07A12;         /* flip highlight */
+  --flip-soft:#F6ECCF;
+  --radius:14px;
+  --shadow:0 1px 2px rgba(28,24,21,.04), 0 8px 24px -12px rgba(28,24,21,.12);
+  --shadow-lg:0 2px 4px rgba(28,24,21,.05), 0 24px 60px -28px rgba(28,24,21,.28);
+}
+*{ box-sizing:border-box; }
+html{ scroll-behavior:smooth; }
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:'Pretendard',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased; line-height:1.55;
+  background-image:
+    radial-gradient(circle at 18% 12%, rgba(192,64,42,.04), transparent 38%),
+    radial-gradient(circle at 88% 82%, rgba(39,83,127,.05), transparent 42%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+  background-attachment:fixed;
+}
+.serif{ font-family:'Fraunces',Georgia,serif; }
+.mono{ font-family:'IBM Plex Mono',ui-monospace,Menlo,monospace; }
+.wrap{ max-width:1120px; margin:0 auto; padding:0 28px; }
+h1,h2,h3{ margin:0; font-weight:600; letter-spacing:-.01em; }
+a{ color:var(--accent); text-decoration:none; }
+button{ font-family:inherit; cursor:pointer; }
+
+/* ── top bar ── */
+.topbar{
+  position:sticky; top:0; z-index:50; backdrop-filter:saturate(1.4) blur(10px);
+  background:rgba(244,241,233,.82); border-bottom:1px solid var(--line);
+}
+.topbar .row{ display:flex; align-items:center; justify-content:space-between; height:60px; }
+.brand{ display:flex; align-items:center; gap:11px; }
+.brand .seal{
+  width:30px; height:30px; border-radius:7px; background:var(--accent);
+  color:#fff; display:grid; place-items:center; font-weight:600; font-size:15px;
+  font-family:'Fraunces',serif; box-shadow:0 2px 8px -2px rgba(192,64,42,.6);
+}
+.brand b{ font-weight:600; font-size:14.5px; letter-spacing:-.01em; }
+.brand span{ font-size:11px; color:var(--ink-3); letter-spacing:.04em; }
+.steps{ display:flex; gap:4px; align-items:center; }
+.steps .s{
+  font-size:11px; padding:4px 11px; border-radius:999px; color:var(--ink-3);
+  font-weight:500; transition:all .35s; white-space:nowrap;
+}
+.steps .s.on{ background:var(--ink); color:var(--paper); }
+.steps .arr{ color:var(--line-2); font-size:10px; }
+
+/* ── hero ── */
+.hero{ padding:64px 0 30px; }
+.eyebrow{
+  display:inline-flex; align-items:center; gap:8px; font-size:11.5px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--accent); font-weight:600; margin-bottom:22px;
+}
+.eyebrow::before{ content:""; width:22px; height:1.5px; background:var(--accent); }
+.hero h1{ font-size:clamp(34px,5.2vw,58px); line-height:1.04; letter-spacing:-.025em; }
+.hero h1 em{ font-style:italic; color:var(--accent); }
+.hero .lede{ margin-top:22px; max-width:620px; font-size:17px; color:var(--ink-2); line-height:1.6; }
+.hero .oneliner{
+  margin-top:26px; display:inline-block; padding:13px 18px; background:var(--paper-2);
+  border:1px solid var(--line); border-left:3px solid var(--accent); border-radius:0 10px 10px 0;
+  font-size:15px; font-weight:500;
+}
+.hero .oneliner b{ color:var(--accent); }
+
+/* fact strip */
+.facts{ display:flex; flex-wrap:wrap; gap:0; margin-top:40px; border:1px solid var(--line); border-radius:12px; overflow:hidden; background:var(--paper-2); }
+.facts .f{ flex:1 1 16%; min-width:150px; padding:15px 18px; border-right:1px solid var(--line); }
+.facts .f:last-child{ border-right:none; }
+.facts .f .v{ font-family:'Fraunces',serif; font-size:22px; font-weight:600; letter-spacing:-.01em; }
+.facts .f .l{ font-size:11px; color:var(--ink-2); margin-top:3px; line-height:1.35; }
+.facts .f .src{ font-size:9.5px; color:var(--ink-3); margin-top:5px; letter-spacing:.02em; }
+
+/* ── section heads ── */
+.sec{ padding:44px 0; }
+.sechead{ display:flex; align-items:baseline; gap:14px; margin-bottom:24px; }
+.sechead .num{ font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--accent); font-weight:600; padding-top:4px; }
+.sechead h2{ font-size:25px; letter-spacing:-.02em; }
+.sechead .sub{ font-size:13.5px; color:var(--ink-2); margin-top:4px; }
+
+/* ── console ── */
+.console{
+  background:var(--paper-2); border:1px solid var(--line); border-radius:18px;
+  padding:26px; box-shadow:var(--shadow); position:relative; overflow:hidden;
+}
+.console::before{
+  content:""; position:absolute; inset:0 0 auto 0; height:3px;
+  background:linear-gradient(90deg,var(--search) 0%,var(--search) 50%,var(--exp) 50%,var(--exp) 100%);
+  opacity:.55; transition:opacity .3s;
+}
+.cgrid{ display:grid; grid-template-columns:1.15fr 1fr; gap:30px; }
+.field{ margin-bottom:20px; }
+.field > label{ display:block; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); font-weight:600; margin-bottom:9px; }
+.seg{ display:flex; gap:7px; }
+.seg .opt{
+  flex:1; border:1px solid var(--line-2); background:var(--paper); border-radius:11px;
+  padding:13px 14px; text-align:left; transition:all .18s; position:relative;
+}
+.seg .opt .ttl{ font-weight:600; font-size:14px; display:flex; align-items:center; gap:7px; }
+.seg .opt .dsc{ font-size:11.5px; color:var(--ink-3); margin-top:3px; }
+.seg .opt .tag{ font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:.05em; padding:1px 6px; border-radius:5px; }
+.seg .opt[data-type="search"] .tag{ background:var(--search-soft); color:var(--search); }
+.seg .opt[data-type="experience"] .tag{ background:var(--exp-soft); color:var(--exp); }
+.seg .opt.on[data-type="search"]{ border-color:var(--search); background:var(--search-soft); box-shadow:0 0 0 1px var(--search); }
+.seg .opt.on[data-type="experience"]{ border-color:var(--exp); background:var(--exp-soft); box-shadow:0 0 0 1px var(--exp); }
+
+.slider-row{ display:flex; align-items:center; gap:16px; }
+input[type=range]{ -webkit-appearance:none; appearance:none; flex:1; height:5px; border-radius:4px; background:var(--paper-3); outline:none; }
+input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:20px; height:20px; border-radius:50%; background:var(--ink); border:3px solid var(--paper-2); box-shadow:var(--shadow); cursor:grab; transition:transform .12s; }
+input[type=range]::-webkit-slider-thumb:active{ transform:scale(1.15); cursor:grabbing; }
+input[type=range]::-moz-range-thumb{ width:20px; height:20px; border-radius:50%; background:var(--ink); border:3px solid var(--paper-2); cursor:grab; }
+.delta-badge{ font-family:'Fraunces',serif; font-size:30px; font-weight:600; min-width:96px; text-align:right; letter-spacing:-.02em; }
+.delta-badge small{ font-size:14px; color:var(--ink-3); }
+.price-line{ font-family:'IBM Plex Mono',monospace; font-size:13px; color:var(--ink-2); margin-top:11px; }
+.price-line s{ color:var(--ink-3); }
+.price-line b{ color:var(--accent); }
+
+.toggle{ display:flex; align-items:center; gap:12px; padding:13px 15px; border:1px solid var(--line); border-radius:11px; background:var(--paper); }
+.switch{ position:relative; width:42px; height:24px; flex:none; }
+.switch input{ display:none; }
+.switch .track{ position:absolute; inset:0; background:var(--line-2); border-radius:999px; transition:.2s; }
+.switch .track::after{ content:""; position:absolute; top:3px; left:3px; width:18px; height:18px; border-radius:50%; background:#fff; transition:.2s; box-shadow:0 1px 3px rgba(0,0,0,.2); }
+.switch input:checked + .track{ background:var(--accent); }
+.switch input:checked + .track::after{ transform:translateX(18px); }
+.toggle .tx b{ font-size:13.5px; } .toggle .tx span{ font-size:11.5px; color:var(--ink-3); display:block; }
+
+.runbtn{
+  width:100%; margin-top:6px; background:var(--ink); color:var(--paper); border:none;
+  border-radius:12px; padding:16px; font-size:15px; font-weight:600; letter-spacing:-.01em;
+  display:flex; align-items:center; justify-content:center; gap:10px; transition:all .18s;
+}
+.runbtn:hover{ background:#2c2620; transform:translateY(-1px); box-shadow:var(--shadow-lg); }
+.runbtn:disabled{ background:var(--ink-3); cursor:wait; transform:none; }
+.runbtn .ar{ transition:transform .3s; }
+.runbtn:hover .ar{ transform:translateX(4px); }
+.cfg-note{ font-size:11.5px; color:var(--ink-3); text-align:center; margin-top:12px; }
+
+/* ── persona grid ── */
+.pgrid{ display:grid; grid-template-columns:repeat(4,1fr); gap:13px; }
+.pcard{
+  background:var(--paper-2); border:1px solid var(--line); border-radius:13px; padding:15px;
+  text-align:left; transition:all .18s; position:relative; overflow:hidden;
+}
+.pcard:hover{ transform:translateY(-2px); box-shadow:var(--shadow); border-color:var(--line-2); }
+.pcard .top{ display:flex; align-items:center; gap:10px; margin-bottom:11px; }
+.pcard .av{ width:38px; height:38px; border-radius:10px; display:grid; place-items:center; font-weight:600; font-size:14px; flex:none; font-family:'Fraunces',serif; }
+.pcard .nm{ font-weight:600; font-size:13.5px; line-height:1.2; }
+.pcard .ar{ font-size:10.5px; color:var(--ink-3); margin-top:1px; }
+.pcard .meta{ font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--ink-2); margin-bottom:10px; }
+.gauges{ display:flex; flex-direction:column; gap:5px; }
+.gauge{ display:flex; align-items:center; gap:7px; }
+.gauge .gl{ font-size:9.5px; color:var(--ink-3); width:30px; flex:none; }
+.gauge .gt{ flex:1; height:5px; background:var(--paper-3); border-radius:3px; overflow:hidden; }
+.gauge .gf{ height:100%; border-radius:3px; width:0; transition:width .9s cubic-bezier(.2,.7,.2,1); }
+.pcard .intf{ margin-top:11px; padding-top:10px; border-top:1px dashed var(--line); display:flex; justify-content:space-between; font-size:10px; color:var(--ink-3); }
+.pcard .intf b{ color:var(--ink); font-family:'IBM Plex Mono',monospace; }
+
+/* ── flow / stages ── */
+.stage{ opacity:0; transform:translateY(14px); transition:opacity .5s, transform .5s; }
+.stage.show{ opacity:1; transform:none; }
+.stagelabel{ display:flex; align-items:center; gap:10px; margin:30px 0 16px; }
+.stagelabel .b{ font-family:'IBM Plex Mono',monospace; font-size:10.5px; font-weight:600; letter-spacing:.08em; background:var(--ink); color:var(--paper); padding:4px 9px; border-radius:6px; }
+.stagelabel h3{ font-size:16px; }
+.stagelabel .hint{ font-size:12px; color:var(--ink-3); margin-left:auto; }
+
+.reactlist{ display:flex; flex-direction:column; gap:9px; }
+.react{
+  display:grid; grid-template-columns:auto 1fr auto; gap:14px; align-items:center;
+  background:var(--paper-2); border:1px solid var(--line); border-radius:12px; padding:13px 16px;
+  opacity:0; transform:translateX(-8px); transition:opacity .4s, transform .4s, border-color .3s;
+}
+.react.in{ opacity:1; transform:none; }
+.react .av{ width:34px; height:34px; border-radius:9px; display:grid; place-items:center; font-weight:600; font-size:12.5px; font-family:'Fraunces',serif; flex:none; }
+.react .nm{ font-weight:600; font-size:13px; }
+.react .cot{ font-size:12.5px; color:var(--ink-2); margin-top:2px; line-height:1.45; }
+.react .verdict{ text-align:right; flex:none; }
+.badge{ display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:600; padding:4px 10px; border-radius:999px; white-space:nowrap; }
+.badge.buy{ background:var(--buy-soft); color:var(--buy); }
+.badge.no{ background:var(--no-soft); color:var(--no); }
+.badge.flip{ background:var(--flip-soft); color:var(--flip); }
+.conf{ font-size:10px; color:var(--ink-3); font-family:'IBM Plex Mono',monospace; margin-top:5px; }
+.conf i{ color:var(--flip); font-style:normal; }
+
+/* discussion */
+.thread{ background:var(--paper-3); border:1px solid var(--line); border-radius:14px; padding:18px; }
+.thread .head{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--ink-2); margin-bottom:14px; padding-bottom:12px; border-bottom:1px solid var(--line); }
+.thread .head .dot{ width:7px; height:7px; border-radius:50%; background:var(--accent); }
+.post{ display:flex; gap:11px; margin-bottom:13px; opacity:0; transform:translateY(6px); transition:opacity .4s, transform .4s; }
+.post.in{ opacity:1; transform:none; }
+.post .av{ width:30px; height:30px; border-radius:8px; display:grid; place-items:center; font-weight:600; font-size:11px; font-family:'Fraunces',serif; flex:none; }
+.post .bubble{ background:var(--paper-2); border:1px solid var(--line); border-radius:4px 12px 12px 12px; padding:9px 13px; max-width:78%; }
+.post.seed .bubble{ background:var(--ink); color:var(--paper); border-color:var(--ink); border-radius:12px; }
+.post.seed .bubble .who{ color:var(--paper); opacity:.7; }
+.post .who{ font-size:11px; font-weight:600; color:var(--ink-2); margin-bottom:2px; }
+.post .who .lead{ font-family:'IBM Plex Mono',monospace; font-size:9px; background:var(--accent); color:#fff; padding:1px 5px; border-radius:4px; margin-left:6px; letter-spacing:.04em; }
+.post .msg{ font-size:13px; line-height:1.5; }
+
+/* ── results ── */
+.metrics{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+.metric{
+  background:var(--paper-2); border:1px solid var(--line); border-radius:15px; padding:18px 18px 16px;
+  position:relative; overflow:hidden; box-shadow:var(--shadow);
+}
+.metric .ml{ font-size:11px; color:var(--ink-2); font-weight:600; letter-spacing:.02em; display:flex; align-items:center; gap:6px; }
+.metric .mv{ font-family:'Fraunces',serif; font-size:38px; font-weight:600; letter-spacing:-.02em; margin-top:9px; line-height:1; }
+.metric .mv small{ font-size:16px; color:var(--ink-3); font-weight:500; }
+.metric .mt{ font-size:11.5px; margin-top:9px; line-height:1.4; }
+.metric .mt .up{ color:var(--accent); font-weight:600; } .metric .mt .dn{ color:var(--buy); font-weight:600; }
+.metric .formula{ font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--ink-3); margin-top:8px; }
+.metric.hl::after{ content:""; position:absolute; inset:0 auto 0 0; width:3px; }
+.metric.hl.up::after{ background:var(--accent); } .metric.hl.dn::after{ background:var(--buy); }
+
+.charts{ display:grid; grid-template-columns:1fr 1.25fr; gap:16px; margin-top:16px; }
+.chart{ background:var(--paper-2); border:1px solid var(--line); border-radius:15px; padding:20px; box-shadow:var(--shadow); }
+.chart h4{ font-size:13px; font-weight:600; margin-bottom:3px; }
+.chart .csub{ font-size:11.5px; color:var(--ink-3); margin-bottom:14px; }
+.legend{ display:flex; gap:14px; flex-wrap:wrap; margin-top:12px; font-size:11px; color:var(--ink-2); }
+.legend .li{ display:flex; align-items:center; gap:6px; } .legend .sw{ width:11px; height:11px; border-radius:3px; }
+
+/* results table */
+.rtable{ width:100%; border-collapse:collapse; margin-top:16px; background:var(--paper-2); border:1px solid var(--line); border-radius:14px; overflow:hidden; }
+.rtable th, .rtable td{ padding:11px 14px; text-align:left; font-size:12.5px; border-bottom:1px solid var(--line); }
+.rtable th{ font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); font-weight:600; background:var(--paper-3); }
+.rtable tr:last-child td{ border-bottom:none; }
+.rtable td .pn{ display:flex; align-items:center; gap:9px; }
+.rtable td .av{ width:26px; height:26px; border-radius:7px; display:grid; place-items:center; font-weight:600; font-size:11px; font-family:'Fraunces',serif; }
+.rtable .rationale{ color:var(--ink-2); font-size:12px; max-width:340px; }
+
+.empty{ text-align:center; padding:50px 20px; color:var(--ink-3); font-size:13.5px; border:1.5px dashed var(--line-2); border-radius:16px; background:var(--paper-2); }
+.empty .ico{ font-size:30px; margin-bottom:10px; opacity:.5; }
+
+/* ── modal ── */
+.modal-bg{ position:fixed; inset:0; background:rgba(28,24,21,.4); backdrop-filter:blur(3px); z-index:100; display:none; align-items:center; justify-content:center; padding:24px; opacity:0; transition:opacity .2s; }
+.modal-bg.show{ display:flex; opacity:1; }
+.modal{ background:var(--paper-2); border-radius:18px; max-width:560px; width:100%; max-height:88vh; overflow:auto; box-shadow:var(--shadow-lg); transform:scale(.97); transition:transform .2s; }
+.modal-bg.show .modal{ transform:none; }
+.modal .mh{ display:flex; align-items:center; gap:14px; padding:22px 24px; border-bottom:1px solid var(--line); position:sticky; top:0; background:var(--paper-2); }
+.modal .mh .av{ width:46px; height:46px; border-radius:12px; display:grid; place-items:center; font-weight:600; font-size:18px; font-family:'Fraunces',serif; }
+.modal .mh h3{ font-size:18px; } .modal .mh .ar{ font-size:12px; color:var(--ink-3); }
+.modal .mh .x{ margin-left:auto; background:var(--paper-3); border:none; width:32px; height:32px; border-radius:9px; font-size:16px; color:var(--ink-2); }
+.modal .mb{ padding:8px 24px 24px; }
+.block{ margin-top:18px; }
+.block .bt{ font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--accent); font-weight:600; margin-bottom:9px; display:flex; align-items:center; gap:8px; }
+.block .bt::after{ content:""; flex:1; height:1px; background:var(--line); }
+.kv{ display:flex; justify-content:space-between; padding:5px 0; font-size:13px; border-bottom:1px dotted var(--line); }
+.kv .k{ color:var(--ink-2); } .kv .v{ font-weight:500; font-family:'IBM Plex Mono',monospace; font-size:12px; }
+.payload{ background:var(--ink); color:#E8E3D8; border-radius:11px; padding:15px; font-family:'IBM Plex Mono',monospace; font-size:11.5px; line-height:1.65; overflow-x:auto; white-space:pre; margin-top:6px; }
+.payload .k{ color:#C8956C; } .payload .s{ color:#A8C99A; } .payload .n{ color:#8FB8D8; }
+.srcnote{ font-size:11px; color:var(--ink-3); margin-top:14px; padding:11px 13px; background:var(--paper-3); border-radius:9px; line-height:1.5; }
+.srcnote b{ color:var(--ink-2); }
+
+/* footer */
+footer{ border-top:1px solid var(--line); margin-top:50px; padding:30px 0 50px; }
+.foot{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px; font-size:12px; color:var(--ink-3); }
+.foot .repo{ font-family:'IBM Plex Mono',monospace; }
+
+@media (max-width:880px){
+  .cgrid{ grid-template-columns:1fr; } .pgrid{ grid-template-columns:repeat(2,1fr); }
+  .metrics{ grid-template-columns:repeat(2,1fr); } .charts{ grid-template-columns:1fr; }
+  .facts .f{ flex-basis:33%; }
+}
+@media (max-width:560px){ .pgrid{ grid-template-columns:1fr; } .metrics{ grid-template-columns:1fr; } }
+
+.spin{ width:16px; height:16px; border:2px solid rgba(244,241,233,.35); border-top-color:var(--paper); border-radius:50%; animation:sp .7s linear infinite; }
+@keyframes sp{ to{ transform:rotate(360deg); } }
+.reveal{ opacity:0; transform:translateY(16px); animation:rv .7s forwards; }
+@keyframes rv{ to{ opacity:1; transform:none; } }
+</style>
 </head>
 <body>
-    <div class="dashboard">
-        <h2>📊 AI 페르소나 가격 시뮬레이션</h2>
-        
-        <div class="controls">
-            <div>
-                <label>상품 선택:</label>
-                <select id="productSelect">
-                    <option value="monitor">🖥️ 모니터 (탐색재 - 30만원)</option>
-                    <option value="cosmetics">💄 화장품 앰플 (경험재 - 6만원)</option>
-                </select>
-            </div>
-            <div>
-                <label>가격 인상률:</label>
-                <select id="priceIncrease">
-                    <option value="20">+20% 인상</option>
-                </select>
-            </div>
-            <div>
-                <label>토론 단계(커뮤니티 효과):</label>
-                <input type="checkbox" id="discussionToggle" checked> ON
-            </div>
-            <button class="btn" onclick="runSimulation()">시뮬레이션 실행</button>
-        </div>
 
-        <div class="metrics">
-            <div class="metric-card">
-                <h3>가격 탄력성 (ε_sim)</h3>
-                <div class="value" id="valElasticity">-</div>
-            </div>
-            <div class="metric-card">
-                <h3>구전 승수 (WOM_m)</h3>
-                <div class="value" id="valWom">-</div>
-            </div>
-            <div class="metric-card">
-                <h3>McNemar 검정 (χ²)</h3>
-                <div class="value" id="valMcnemar">-</div>
-            </div>
-        </div>
-
-        <table id="resultTable">
-            <thead>
-                <tr>
-                    <th>페르소나</th>
-                    <th>특징</th>
-                    <th>1차 결정 (개별)</th>
-                    <th>2차 결정 (토론 후)</th>
-                    <th>상태</th>
-                </tr>
-            </thead>
-            <tbody>
-                </tbody>
-        </table>
+<!-- ░░ TOP BAR ░░ -->
+<div class="topbar">
+  <div class="wrap row">
+    <div class="brand">
+      <div class="seal">研</div>
+      <div>
+        <b>Pricing Sandbox</b><br>
+        <span>KAIST IMMS · 제로 리스크 프라이싱 시뮬레이터</span>
+      </div>
     </div>
+    <div class="steps" id="steps">
+      <div class="s on" data-s="1">① 설계</div><span class="arr">→</span>
+      <div class="s" data-s="2">② 페르소나</div><span class="arr">→</span>
+      <div class="s" data-s="3">③ 1차 판단</div><span class="arr">→</span>
+      <div class="s" data-s="4">④ 토론</div><span class="arr">→</span>
+      <div class="s" data-s="5">⑤ 결과</div>
+    </div>
+  </div>
+</div>
 
-    </body>
+<!-- ░░ HERO ░░ -->
+<div class="wrap hero">
+  <div class="eyebrow">생성형 AI 다에이전트 시뮬레이션</div>
+  <h1 class="serif">사람들 대신,<br><em>AI에게</em> 가격을 올려 묻다.</h1>
+  <p class="lede">통계청 데이터로 만든 가상 소비자(호모 실리쿠스)에게 가격 인상 시나리오를 제시하고, 재화 특성과 커뮤니티 토론이 가격 저항을 어떻게 바꾸는지 측정합니다. 매출 위험 없이, 가격 정책을 미리 실험하는 샌드박스입니다.</p>
+  <div class="oneliner">물건마다 반응이 다르다 — <b>모니터</b>는 스펙으로 비교되고(탐색재), <b>화장품</b>은 써봐야 안다(경험재). 그 차이를 데이터로.</div>
+
+  <div class="facts" id="facts"></div>
+</div>
+
+<!-- ░░ 1. CONSOLE ░░ -->
+<div class="wrap sec" id="sec-console">
+  <div class="sechead">
+    <div class="num">01</div>
+    <div><h2 class="serif">실험 설계</h2><div class="sub">재화·가격·토론 조건을 설정하고 시뮬레이션을 실행합니다. — 2×2 요인설계 (재화 2종 × 가격 2수준)</div></div>
+  </div>
+
+  <div class="console" id="console">
+    <div class="cgrid">
+      <div>
+        <div class="field">
+          <label>재화 종류 / Good Type</label>
+          <div class="seg" id="typeSeg">
+            <button class="opt on" data-type="search" data-name="27인치 1440p 모니터" data-price="300000" data-src="다나와 평균가">
+              <div class="ttl">🖥️ 모니터 <span class="tag">SEARCH · 탐색재</span></div>
+              <div class="dsc">스펙으로 즉시 비교 가능 · 가격 민감</div>
+            </button>
+            <button class="opt" data-type="experience" data-name="스킨케어 앰플 세트" data-price="60000" data-src="올리브영 평균가">
+              <div class="ttl">🧴 화장품 <span class="tag">EXPERIENCE · 경험재</span></div>
+              <div class="dsc">써봐야 가치를 앎 · 브랜드·후기 의존</div>
+            </button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>가격 인상폭 / Price Shock</label>
+          <div class="slider-row">
+            <input type="range" id="delta" min="-20" max="50" step="5" value="20">
+            <div class="delta-badge" id="deltaBadge">+20<small>%</small></div>
+          </div>
+          <div class="price-line" id="priceLine"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="field">
+          <label>커뮤니티 토론 단계 / Discussion</label>
+          <div class="toggle">
+            <label class="switch"><input type="checkbox" id="discToggle" checked><span class="track"></span></label>
+            <div class="tx"><b>2단계 토론 노출 ON</b><span>오피니언 리더 시드 게시글 → 순차 댓글 → 2차 재판단</span></div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>참여 페르소나 / Agents</label>
+          <div class="toggle" style="cursor:default">
+            <div style="font-family:'Fraunces',serif; font-size:30px; font-weight:600; line-height:1;">8<span style="font-size:14px;color:var(--ink-3)"> 명</span></div>
+            <div class="tx"><b>통계청 기반 대표 페르소나 8명</b><span>본 실험은 16개 페르소나 × N=30 반복 = 1,920 trials</span></div>
+          </div>
+        </div>
+
+        <button class="runbtn" id="runBtn">
+          <span id="runLabel">시뮬레이션 실행</span> <span class="ar">→</span>
+        </button>
+        <div class="cfg-note" id="cfgNote"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ░░ 2. PERSONAS ░░ -->
+<div class="wrap sec" id="sec-personas">
+  <div class="sechead">
+    <div class="num">02</div>
+    <div><h2 class="serif">페르소나 라이브러리</h2><div class="sub">통계청·한국은행·KB·KPMG 자료로 4축(경제력 × 가치관 × 가구 × 세대) 구성. 카드를 클릭하면 시스템 프롬프트 페이로드와 출처를 볼 수 있습니다.</div></div>
+  </div>
+  <div class="pgrid" id="pgrid"></div>
+</div>
+
+<!-- ░░ 3-4. FLOW ░░ -->
+<div class="wrap sec" id="sec-flow">
+  <div class="sechead">
+    <div class="num">03</div>
+    <div><h2 class="serif">시뮬레이션 진행</h2><div class="sub">개별 1차 판단 → 커뮤니티 토론 → 2차 재판단의 흐름을 단계별로 추적합니다.</div></div>
+  </div>
+  <div id="flowBody">
+    <div class="empty"><div class="ico">▶</div>위에서 조건을 설정하고 <b>‘시뮬레이션 실행’</b>을 누르면 8명의 의사결정 과정이 여기에 펼쳐집니다.</div>
+  </div>
+</div>
+
+<!-- ░░ 5. RESULTS ░░ -->
+<div class="wrap sec" id="sec-results">
+  <div class="sechead">
+    <div class="num">04</div>
+    <div><h2 class="serif">결과 대시보드</h2><div class="sub">가격 탄력성 ε<sub>sim</sub>, 구전 승수 WOM<sub>m</sub>, 구매율 변화, 의사결정 번복(FLIP)을 정량화합니다.</div></div>
+  </div>
+  <div id="resultsBody">
+    <div class="empty"><div class="ico">📊</div>시뮬레이션을 실행하면 ε<sub>sim</sub> · WOM<sub>m</sub> · 수요곡선 · 페르소나별 의사결정표가 생성됩니다.</div>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap foot">
+    <div>© 2026 KAIST IMMS · 김기환 · 이민성 · 유지윤 — 졸업 프로젝트 데모</div>
+    <a class="repo" href="https://github.com/jiyunyoo/pricing-sandbox" target="_blank">github.com/jiyunyoo/pricing-sandbox ↗</a>
+  </div>
+</footer>
+
+<!-- modal -->
+<div class="modal-bg" id="modalBg"><div class="modal" id="modal"></div></div>
+
+<script>
+"use strict";
+/* ════════════════════════════════════════════════════════════════
+   DATA — KOSTAT-grounded persona archetypes (8 representative agents)
+   ════════════════════════════════════════════════════════════════ */
+const PERSONAS = [
+  { id:'minjun', name:'민준', en:'Minjun', arch:'가성비 직장인', age:31, sex:'남', hh:'1인 가구', region:'서울',
+    income:3800000, incomeNote:'3분위 · IT 백엔드 개발자', color:'#27537F',
+    values:{ gaseongbi:0.85, gasimbi:0.20, meaningOut:0.15, brand:0.30 },
+    interest:{ search:0.90, experience:0.10 },
+    life:['스펙 5곳 이상 비교 후 구매','테크 커뮤니티 활동','모니터 2년 주기 교체'],
+    src:'KOSTAT 가계동향 3분위 · 1인가구 평균소득' },
+  { id:'seojin', name:'서진', en:'Seojin', arch:'가심비 워커', age:28, sex:'여', hh:'1인 가구', region:'서울',
+    income:4200000, incomeNote:'3분위 상 · 마케팅 AM', color:'#A8552C',
+    values:{ gaseongbi:0.25, gasimbi:0.85, meaningOut:0.30, brand:0.70 },
+    interest:{ search:0.30, experience:0.85 },
+    life:['뷰티·여행에 소득 18% 지출','선호 화장품 3~4개 브랜드 충성','K-뷰티 리뷰 정독'],
+    src:'KOSTAT 사회조사 · KPMG Liquid Consumption' },
+  { id:'hyeonwoo', name:'현우', en:'Hyeonwoo', arch:'미닝아웃 청년', age:24, sex:'남', hh:'부모 동거', region:'경기',
+    income:2500000, incomeNote:'스타트업 인턴 + 용돈', color:'#3C7A52',
+    values:{ gaseongbi:0.40, gasimbi:0.40, meaningOut:0.85, brand:0.30 },
+    interest:{ search:0.50, experience:0.70 },
+    life:['ESG·가치 기반 소비','지속가능·인디 브랜드 선호','리퍼·중고 가전 구매'],
+    src:'대한상의 MZ ESG 선호 64% · 오픈서베이' },
+  { id:'jihye', name:'지혜', en:'Jihye', arch:'균형 맞벌이맘', age:38, sex:'여', hh:'부부+자녀2', region:'경기',
+    income:9000000, incomeNote:'가구 합산 · 중견 경력', color:'#B07A12',
+    values:{ gaseongbi:0.65, gasimbi:0.55, meaningOut:0.30, brand:0.50 },
+    interest:{ search:0.70, experience:0.55 },
+    life:['생필품은 PB로 절약','자녀 교육엔 프리미엄','사교육에 소득 18%'],
+    src:'KOSTAT 가계동향 4분위 · 사회조사' },
+  { id:'jongho', name:'종호', en:'Jongho', arch:'절약 가장', age:45, sex:'남', hh:'부부+자녀2', region:'인천',
+    income:5500000, incomeNote:'제조 중간관리자 · 주담대', color:'#5A5249',
+    values:{ gaseongbi:0.95, gasimbi:0.10, meaningOut:0.10, brand:0.20 },
+    interest:{ search:0.55, experience:0.10 },
+    life:['짠테크 실천','모니터 5년 이상 사용','화장품엔 무관심'],
+    src:'KOSTAT 가계동향 · BOK 부채 이슈노트' },
+  { id:'yeongja', name:'영자', en:'Yeongja', arch:'브랜드 충성 시니어', age:68, sex:'여', hh:'1인 가구', region:'부산',
+    income:1800000, incomeNote:'연금 + 가족 지원', color:'#7A4FA0',
+    values:{ gaseongbi:0.30, gasimbi:0.30, meaningOut:0.10, brand:0.95 },
+    interest:{ search:0.10, experience:0.40 },
+    life:['같은 스킨케어 20년 이상 사용','의료비에 12% 지출','새 브랜드 회피'],
+    src:'KOSTAT 2025 1인가구 · 고령자 통계' },
+  { id:'daeun', name:'다은', en:'Daeun', arch:'Gen-Z 탐색러', age:22, sex:'여', hh:'기숙사', region:'서울',
+    income:1500000, incomeNote:'아르바이트 + 가족', color:'#C0402A',
+    values:{ gaseongbi:0.60, gasimbi:0.70, meaningOut:0.65, brand:0.55 },
+    interest:{ search:0.45, experience:0.85 },
+    life:['틱톡 기반 발견 소비','연 3~5개 신규 브랜드 시도','퍼스널컬러 진단 애호'],
+    src:'KISDI 미디어패널 · KPMG MZ 보고서' },
+  { id:'junseok', name:'준석', en:'Junseok', arch:'얼리어답터', age:34, sex:'남', hh:'부부(무자녀)', region:'서울',
+    income:6500000, incomeNote:'시니어 개발자 · DINK', color:'#1F6B6B',
+    values:{ gaseongbi:0.40, gasimbi:0.75, meaningOut:0.40, brand:0.65 },
+    interest:{ search:0.85, experience:0.55 },
+    life:['신제품 출시 당일 구매','프리미엄 티어 선호','테크 셋업 큐레이션'],
+    src:'KOSTAT 가계동향 5분위 · KB 1인가구' },
+];
+
+const FACTS = [
+  { v:'36.1%', l:'1인 가구 비중', src:'KOSTAT 2025 1인가구' },
+  { v:'₩34.2M', l:'1인 가구 평균 연소득', src:'KOSTAT 가계동향 2024' },
+  { v:'64%+', l:'MZ세대 ESG 선호', src:'대한상공회의소 2022' },
+  { v:'~3.4%', l:'연평균 물가 상승률', src:'KOSTAT 소비자물가' },
+  { v:'12.3%', l:'가계 평균 저축률', src:'BOK 2024' },
+];
+
+/* ════════════════════════════════════════════════════════════════
+   STATE
+   ════════════════════════════════════════════════════════════════ */
+const state = {
+  type:'search', name:'27인치 1440p 모니터', basePrice:300000, src:'다나와 평균가',
+  delta:20, discussion:true, result:null,
+};
+
+/* ════════════════════════════════════════════════════════════════
+   ENGINE — deterministic decision + discussion model
+   ════════════════════════════════════════════════════════════════ */
+const sigmoid = x => 1/(1+Math.exp(-x));
+const clamp = (x,a,b) => Math.max(a,Math.min(b,x));
+const won = n => '₩'+Math.round(n).toLocaleString('ko-KR');
+
+function willingness(p, type, m){
+  const interest = p.interest[type];
+  const ib = p.income/4000000;          // income buffer (1.0 ≈ avg)
+  const pb = (m-1)/ib;                   // price burden relative to income
+  let ps, K;
+  if(type==='search'){
+    ps = 0.15 + 1.35*p.values.gaseongbi;            // search = highly price-sensitive
+    K = 1.6;
+  } else {
+    ps = clamp(0.55 - 0.25*p.values.brand - 0.25*p.values.gasimbi + 0.20*p.values.gaseongbi, 0.12, 0.7);
+    K = 0.75;                                        // experience = insensitive (brand/affect cushion)
+  }
+  return clamp(interest - pb*ps*K, -0.6, 1.3);
+}
+const buyProb = w => sigmoid(6*(w-0.32));
+const isBuy = w => w > 0.32;
+const conf = w => clamp(Math.round(Math.abs(w-0.32)*7)+1, 1, 5);
+
+function conformity(p){
+  return clamp(0.45 + 0.30*p.values.gasimbi + 0.22*p.values.meaningOut + 0.18*p.values.brand
+    - 0.35*p.values.gaseongbi - (p.age-30)/120, 0.12, 0.92);
+}
+function meanQ(ws){ return ws.reduce((a,w)=>a+buyProb(w),0)/ws.length; }
+
+function simulate(){
+  const type = state.type, m = 1 + state.delta/100;
+  const baseW = PERSONAS.map(p => willingness(p, type, 1));     // base price
+  const preW  = PERSONAS.map(p => willingness(p, type, m));     // raised price, stage 1
+  const Qbase = meanQ(baseW), Qpre = meanQ(preW);
+
+  // ── discussion (stage 2) ──
+  const dir = (type==='search') ? -1 : +1;     // search→cascade(↓), experience→bandwagon(↑)
+  let leaderIdx, postW = preW.slice(), forcedFlip = -1;
+
+  if(state.discussion){
+    if(type==='search'){
+      // leader = most price-resistant skeptic (high 가성비, not buying)
+      leaderIdx = PERSONAS.map((p,i)=>({i,score:p.values.gaseongbi - (isBuy(preW[i])?0.4:0)}))
+                          .sort((a,b)=>b.score-a.score)[0].i;
+    } else {
+      // leader = strongest advocate (brand+가심비, buying)
+      leaderIdx = PERSONAS.map((p,i)=>({i,score:p.values.brand+p.values.gasimbi+(isBuy(preW[i])?0.4:0)}))
+                          .sort((a,b)=>b.score-a.score)[0].i;
+    }
+    // continuous conformity nudge toward seed (gentler for experience bandwagon)
+    const nudge = (type==='search') ? 0.12 : 0.085;
+    PERSONAS.forEach((p,i)=>{ if(i!==leaderIdx) postW[i] = clamp(preW[i] + dir*nudge*conformity(p), -0.7, 1.35); });
+
+    // targeted "domino" flip → guarantees a visible, narratively-clean FLIP
+    if(type==='search'){
+      const cands = PERSONAS.map((p,i)=>({i,margin:preW[i]-0.32}))
+        .filter(o=>o.i!==leaderIdx && o.margin>0 && conformity(PERSONAS[o.i])>0.25)
+        .sort((a,b)=>a.margin-b.margin);
+      if(cands.length){ forcedFlip = cands[0].i; postW[forcedFlip] = 0.20; }
+    } else {
+      const cands = PERSONAS.map((p,i)=>({i,deficit:0.32-preW[i]}))
+        .filter(o=>o.i!==leaderIdx && o.deficit>0 && o.deficit<0.12 &&
+                   (conformity(PERSONAS[o.i])>0.25 || PERSONAS[o.i].values.brand>0.6))
+        .sort((a,b)=>a.deficit-b.deficit);
+      if(cands.length){ forcedFlip = cands[0].i; postW[forcedFlip] = 0.37; }
+    }
+  } else { leaderIdx = -1; }
+
+  const Qpost = meanQ(postW);
+
+  // ── metrics ──
+  const eps = ((Qpre - Qbase)/Qbase)/(state.delta/100);
+  const dQpre = Qbase - Qpre, dQpost = Qbase - Qpost;
+  const wom = Math.abs(dQpre) < 1e-4 ? 1 : dQpost/dQpre;
+
+  // McNemar flips (discrete)
+  let b=0,c=0;
+  PERSONAS.forEach((p,i)=>{
+    const a1=isBuy(preW[i]), a2=isBuy(postW[i]);
+    if(a1&&!a2) b++; if(!a1&&a2) c++;
+  });
+  const chi = (b+c)===0 ? 0 : Math.pow(Math.abs(b-c)-1,2)/(b+c);
+
+  const agents = PERSONAS.map((p,i)=>({
+    p, baseW:baseW[i], preW:preW[i], postW:postW[i],
+    preBuy:isBuy(preW[i]), postBuy:isBuy(postW[i]),
+    preConf:conf(preW[i]), postConf:conf(postW[i]),
+    isLeader:i===leaderIdx, flipped:isBuy(preW[i])!==isBuy(postW[i]),
+  }));
+
+  // demand curve
+  const curve = [];
+  for(let mm=0.85; mm<=1.451; mm+=0.05){
+    curve.push({ m:mm, q:meanQ(PERSONAS.map(p=>willingness(p,type,mm))) });
+  }
+
+  return { type,m,Qbase,Qpre,Qpost,eps,wom,dQpre,dQpost,b,c,chi,agents,leaderIdx,forcedFlip,curve };
+}
+
+/* ════════════════════════════════════════════════════════════════
+   KOREAN RATIONALE + DISCUSSION TEXT
+   ════════════════════════════════════════════════════════════════ */
+function dominant(p){
+  let dom='gaseongbi',mx=-1;
+  ['gaseongbi','gasimbi','meaningOut','brand'].forEach(k=>{ if(p.values[k]>mx){mx=p.values[k];dom=k;} });
+  return dom;
+}
+function rationale(p, type, buy, price){
+  const d = dominant(p), P = won(price);
+  const T = {
+    gaseongbi:{
+      search:{ y:`스펙 4개 비교했는데 ${P}이어도 가격대비 성능은 여전히 이게 최고. 산다.`,
+               n:`${P}? 다나와에 비슷한 스펙 더 싼 게 있다. 굳이 이 값 줄 이유가 없다.`},
+      experience:{ y:`내 영역은 아니지만 굳이 산다면 후기 대비 가성비 좋은 걸로.`,
+                   n:`${P}짜리 화장품은 사치다. 여기서 돈 쓸 생각 없다.`}},
+    gasimbi:{
+      search:{ y:`스펙은 충분. ${state.delta}% 더 주고 마음 편한 게 낫다.`,
+               n:`지를 땐 지르지만 ${P} 주고 스펙 똑같은 건 감흥이 없다.`},
+      experience:{ y:`이 브랜드 쓰면 기분이 좋다. ${state.delta}% 더? 나를 위한 비용이지.`,
+                   n:`나도 한계는 있다. ${P}은 ‘기분값’ 선을 넘었다.`}},
+    meaningOut:{
+      search:{ y:`수리·재생 정책 좋은 브랜드라 ${P}이어도 가치소비로 산다.`,
+               n:`${P}이면 같은 값으로 더 윤리적인 대안을 찾겠다.`},
+      experience:{ y:`비건·친환경 라인이라 ${state.delta}% 인상도 납득. 가치에 지불한다.`,
+                   n:`가치엔 동의하지만 ${P}은 학생 예산을 넘는다.`}},
+    brand:{
+      search:{ y:`늘 쓰던 브랜드라 ${P}이어도 신뢰로 산다.`,
+               n:`충성도는 있지만 ${P}은 내 연금 예산엔 부담이다.`},
+      experience:{ y:`20년 쓴 브랜드다. ${P}이어도 바꿀 생각 없다. 그냥 산다.`,
+                   n:`아무리 충성해도 ${P}은 다음 달로 미루게 된다.`}},
+  };
+  return T[d][type][buy?'y':'n'];
+}
+function seedPost(p, type, delta, price){
+  if(type==='search')
+    return `솔직히 이 모니터 ${won(price)}이면 비싸지 않음? 다나와 보니까 비슷한 27인치 1440p 더 싼 거 많던데. ${delta}% 인상 명분이 약한 듯. 다들 어떻게 봄?`;
+  return `이 앰플 진짜 물건임 ㅋㅋ ${delta}% 올랐어도 살 가치 있음. 한 통 다 쓰면 피부 결이 달라져서 못 돌아감. 가격 좀 올라도 이건 재구매각.`;
+}
+function comment(agent, type, swayed){
+  const n = agent.p.name;
+  if(type==='search'){
+    if(swayed) return `어 그러네… 나도 다시 봐야겠다. 스펙 차이 별로면 굳이 비싼 값 줄 이유가 없지.`;
+    if(agent.postBuy) return `난 그래도 살 듯. 화면 품질·AS 생각하면 이 값 함.`;
+    return `안 그래도 비싸다 했는데 역시. 패스.`;
+  } else {
+    if(swayed) return `오 후기 보니 혹하네. 안 사려다가 하나 담아둔다.`;
+    if(agent.postBuy) return `그 브랜드 믿고 가지. 가격은 좀 그래도 결과가 좋으니까.`;
+    return `좋은 건 알겠는데 내 카테고리는 아니라 패스.`;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   RENDER — static sections
+   ════════════════════════════════════════════════════════════════ */
+const $ = s => document.querySelector(s);
+const hex2rgba = (h,a)=>{ const n=parseInt(h.slice(1),16); return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`; };
+const VAL_LABELS = { gaseongbi:'가성', gasimbi:'가심', meaningOut:'미닝', brand:'브랜' };
+
+function renderFacts(){
+  $('#facts').innerHTML = FACTS.map(f=>`
+    <div class="f"><div class="v serif">${f.v}</div><div class="l">${f.l}</div><div class="src">${f.src}</div></div>`).join('');
+}
+function renderPersonas(){
+  $('#pgrid').innerHTML = PERSONAS.map((p,idx)=>`
+    <button class="pcard reveal" style="animation-delay:${idx*55}ms" data-idx="${idx}">
+      <div class="top">
+        <div class="av" style="background:${hex2rgba(p.color,.14)};color:${p.color}">${p.name[0]}</div>
+        <div><div class="nm">${p.name} <span style="font-weight:400;color:var(--ink-3);font-size:11px">${p.en}</span></div><div class="ar">${p.arch}</div></div>
+      </div>
+      <div class="meta">${p.sex}·${p.age} · ${p.hh} · ${won(p.income)}/월</div>
+      <div class="gauges">
+        ${['gaseongbi','gasimbi','meaningOut','brand'].map(k=>`
+          <div class="gauge"><span class="gl">${VAL_LABELS[k]}</span>
+            <div class="gt"><div class="gf" data-w="${p.values[k]*100}" style="background:${p.color}"></div></div>
+          </div>`).join('')}
+      </div>
+      <div class="intf"><span>관심도</span><span>탐색재 <b>${Math.round(p.interest.search*100)}</b> · 경험재 <b>${Math.round(p.interest.experience*100)}</b></span></div>
+    </button>`).join('');
+  // animate gauges
+  requestAnimationFrame(()=>setTimeout(()=>{
+    document.querySelectorAll('.gf').forEach(g=>g.style.width=g.dataset.w+'%');
+  },200));
+  document.querySelectorAll('.pcard').forEach(c=>c.onclick=()=>openModal(+c.dataset.idx));
+}
+
+/* console wiring */
+function syncConsole(){
+  const np = state.basePrice*(1+state.delta/100);
+  $('#deltaBadge').innerHTML = (state.delta>=0?'+':'')+state.delta+'<small>%</small>';
+  $('#priceLine').innerHTML = `${state.name} · <s>${won(state.basePrice)}</s> → <b>${won(np)}</b> <span style="color:var(--ink-3)">(${state.src})</span>`;
+  $('#cfgNote').textContent = `${state.type==='search'?'탐색재':'경험재'} · ${(state.delta>=0?'+':'')+state.delta}% · 토론 ${state.discussion?'ON':'OFF'} · 8 agents`;
+  $('#console').style.setProperty('--x','0');
+}
+function wireConsole(){
+  document.querySelectorAll('#typeSeg .opt').forEach(opt=>{
+    opt.onclick=()=>{
+      document.querySelectorAll('#typeSeg .opt').forEach(o=>o.classList.remove('on'));
+      opt.classList.add('on');
+      state.type=opt.dataset.type; state.name=opt.dataset.name;
+      state.basePrice=+opt.dataset.price; state.src=opt.dataset.src;
+      syncConsole();
+    };
+  });
+  $('#delta').oninput=e=>{ state.delta=+e.target.value; syncConsole(); };
+  $('#discToggle').onchange=e=>{ state.discussion=e.target.checked; syncConsole(); };
+  $('#runBtn').onclick=run;
+}
+
+/* steps */
+function setStep(n){
+  document.querySelectorAll('#steps .s').forEach(s=>s.classList.toggle('on', +s.dataset.s<=n));
+}
+
+/* ════════════════════════════════════════════════════════════════
+   MODAL — persona payload
+   ════════════════════════════════════════════════════════════════ */
+function openModal(idx){
+  const p = PERSONAS[idx];
+  const payload =
+`{
+  "persona_id": <span class="s">"${p.id}_01"</span>,
+  "demographics": { "sex": <span class="s">"${p.sex==='남'?'M':'F'}"</span>, "age": <span class="n">${p.age}</span>, "household": <span class="s">"${p.hh}"</span>, "region": <span class="s">"${p.region}"</span> },
+  "economics":    { "income_krw": <span class="n">${p.income}</span>, "note": <span class="s">"${p.incomeNote}"</span> },
+  "values":       { "ga_seong_bi": <span class="n">${p.values.gaseongbi}</span>, "ga_sim_bi": <span class="n">${p.values.gasimbi}</span>, "meaning_out": <span class="n">${p.values.meaningOut}</span>, "brand": <span class="n">${p.values.brand}</span> },
+  "lifestyle":    { "search_interest": <span class="n">${p.interest.search}</span>, "experience_interest": <span class="n">${p.interest.experience}</span> },
+  "output_schema":{ "buy": <span class="s">"bool"</span>, "confidence": <span class="s">"1..5"</span>, "rationale_cot": <span class="s">"string"</span> }
+}`;
+  $('#modal').innerHTML = `
+    <div class="mh">
+      <div class="av" style="background:${hex2rgba(p.color,.14)};color:${p.color}">${p.name[0]}</div>
+      <div><h3>${p.name} <span style="font-weight:400;color:var(--ink-3);font-size:13px">${p.en}</span></h3><div class="ar">${p.arch} · ${p.sex}·${p.age} · ${p.region}</div></div>
+      <button class="x" onclick="closeModal()">✕</button>
+    </div>
+    <div class="mb">
+      <div class="block"><div class="bt">① Demographics</div>
+        <div class="kv"><span class="k">가구 구조</span><span class="v">${p.hh}</span></div>
+        <div class="kv"><span class="k">연령 · 성별</span><span class="v">${p.age} · ${p.sex}</span></div>
+        <div class="kv"><span class="k">거주지</span><span class="v">${p.region}</span></div>
+      </div>
+      <div class="block"><div class="bt">② Economics</div>
+        <div class="kv"><span class="k">월 실수령</span><span class="v">${won(p.income)}</span></div>
+        <div class="kv"><span class="k">비고</span><span class="v">${p.incomeNote}</span></div>
+      </div>
+      <div class="block"><div class="bt">③ Values · 가치관 가중치</div>
+        ${['gaseongbi','gasimbi','meaningOut','brand'].map(k=>`
+          <div class="gauge" style="margin:7px 0"><span class="gl" style="width:64px">${({gaseongbi:'가성비',gasimbi:'가심비',meaningOut:'미닝아웃',brand:'브랜드'})[k]}</span>
+          <div class="gt" style="height:7px"><div class="gf" style="width:${p.values[k]*100}%;background:${p.color}"></div></div>
+          <span class="mono" style="font-size:11px;width:34px;text-align:right">${p.values[k].toFixed(2)}</span></div>`).join('')}
+      </div>
+      <div class="block"><div class="bt">④ Lifestyle</div>
+        ${p.life.map(l=>`<div class="kv"><span class="k">·</span><span class="v" style="font-family:inherit;font-weight:400">${l}</span></div>`).join('')}
+      </div>
+      <div class="block"><div class="bt">System Prompt Payload</div>
+        <div class="payload">${payload}</div>
+      </div>
+      <div class="srcnote"><b>데이터 출처:</b> ${p.src} — 모든 페르소나 변수는 통계 원자료로 추적 가능합니다.</div>
+    </div>`;
+  $('#modalBg').classList.add('show');
+}
+function closeModal(){ $('#modalBg').classList.remove('show'); }
+$('#modalBg').onclick=e=>{ if(e.target.id==='modalBg') closeModal(); };
+
+/* ════════════════════════════════════════════════════════════════
+   RUN — orchestrate the animated flow
+   ════════════════════════════════════════════════════════════════ */
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+
+async function run(){
+  const btn=$('#runBtn'); btn.disabled=true;
+  $('#runLabel').textContent='시뮬레이션 실행 중'; btn.querySelector('.ar').outerHTML='<span class="spin"></span>';
+  state.result = simulate();
+  const R = state.result;
+  setStep(3);
+
+  // reset panels
+  $('#flowBody').innerHTML='';
+  $('#resultsBody').innerHTML='';
+  $('#sec-flow').scrollIntoView({behavior:'smooth',block:'start'});
+  await sleep(550);
+
+  // ── STAGE 1 ──
+  const accent = state.type==='search'?'var(--search)':'var(--exp)';
+  $('#flowBody').innerHTML = `
+    <div class="stage" id="st1">
+      <div class="stagelabel"><span class="b">STAGE 1</span><h3>개별 1차 의사결정</h3>
+      <span class="hint">JSON 강제 프롬프팅 · ${won(state.basePrice*R.m)} 자극</span></div>
+      <div class="reactlist" id="react1"></div>
+    </div>`;
+  $('#st1').classList.add('show');
+  for(let i=0;i<R.agents.length;i++){
+    const a=R.agents[i];
+    const el=document.createElement('div'); el.className='react';
+    el.innerHTML=reactRow(a, a.preBuy, a.preConf, rationale(a.p,state.type,a.preBuy,state.basePrice*R.m), false);
+    $('#react1').appendChild(el);
+    requestAnimationFrame(()=>setTimeout(()=>el.classList.add('in'),20));
+    await sleep(160);
+  }
+  $('#cfgNote2'); await sleep(350);
+
+  // ── DISCUSSION ──
+  if(state.discussion){
+    setStep(4);
+    const leader=R.agents[R.leaderIdx];
+    const swayedId = R.forcedFlip>=0 ? PERSONAS[R.forcedFlip].id : null;
+    const others = R.agents.filter(a=>!a.isLeader);
+    const stageHtml = `
+      <div class="stage" id="st2">
+        <div class="stagelabel"><span class="b">STAGE 1.5</span><h3>커뮤니티 토론</h3>
+        <span class="hint">${state.type==='search'?'정보 캐스케이드 발현':'밴드왜건 발현'}</span></div>
+        <div class="thread"><div class="head"><span class="dot"></span> 가상 커뮤니티 스레드 · 오피니언 리더 시드 → 순차 노출</div>
+        <div id="thread"></div></div>
+      </div>`;
+    $('#flowBody').insertAdjacentHTML('beforeend', stageHtml);
+    $('#st2').classList.add('show');
+
+    // seed
+    addPost(leader.p, seedPost(leader.p,state.type,state.delta,state.basePrice*R.m), true, true);
+    await sleep(750);
+    // a few follower comments (leader-aligned + the swayed one)
+    const commenters = others.filter(a => a.p.id===swayedId || a.flipped || a.preConf<=3).slice(0,3);
+    if(!commenters.length) commenters.push(others[0]);
+    for(const a of commenters){
+      const swayed = a.p.id===swayedId;
+      addPost(a.p, comment(a,state.type,swayed), false, false, swayed);
+      await sleep(620);
+    }
+    await sleep(300);
+
+    // ── STAGE 2 ──
+    setStep(5);
+    $('#flowBody').insertAdjacentHTML('beforeend', `
+      <div class="stage" id="st3">
+        <div class="stagelabel"><span class="b">STAGE 2</span><h3>토론 후 2차 의사결정</h3>
+        <span class="hint">의견 변경은 <span style="color:var(--flip);font-weight:600">FLIP</span> 으로 표기</span></div>
+        <div class="reactlist" id="react2"></div>
+      </div>`);
+    $('#st3').classList.add('show');
+    for(let i=0;i<R.agents.length;i++){
+      const a=R.agents[i];
+      const el=document.createElement('div'); el.className='react';
+      el.innerHTML=reactRow(a, a.postBuy, a.postConf,
+        a.flipped ? flipRationale(a) : rationale(a.p,state.type,a.postBuy,state.basePrice*R.m), a.flipped);
+      if(a.flipped) el.style.borderColor='var(--flip)';
+      $('#react2').appendChild(el);
+      requestAnimationFrame(()=>setTimeout(()=>el.classList.add('in'),20));
+      await sleep(150);
+    }
+  } else { setStep(5); }
+
+  await sleep(400);
+  renderResults(R);
+  $('#sec-results').scrollIntoView({behavior:'smooth',block:'start'});
+
+  btn.disabled=false; $('#runLabel').textContent='다시 실행';
+  btn.querySelector('.spin').outerHTML='<span class="ar">↻</span>';
+}
+
+function reactRow(a, buy, confidence, text, flip){
+  const c=a.p.color;
+  const badge = flip
+    ? `<span class="badge flip">⇄ ${buy?'구매':'포기'} (FLIP)</span>`
+    : `<span class="badge ${buy?'buy':'no'}">${buy?'● 구매':'○ 포기'}</span>`;
+  return `
+    <div class="av" style="background:${hex2rgba(c,.14)};color:${c}">${a.p.name[0]}</div>
+    <div><div class="nm">${a.p.name} <span style="font-weight:400;color:var(--ink-3);font-size:11px">${a.p.arch}</span>${a.isLeader?' <span class="mono" style="font-size:9px;background:var(--accent);color:#fff;padding:1px 5px;border-radius:4px">LEADER</span>':''}</div>
+    <div class="cot">“${text}”</div></div>
+    <div class="verdict">${badge}<div class="conf">confidence ${'●'.repeat(confidence)}${'○'.repeat(5-confidence)}</div></div>`;
+}
+function flipRationale(a){
+  if(state.type==='search') return `댓글 보고 다시 생각해보니… 이 값 주고 살 필요는 없겠다. 더 싼 대안을 찾기로.`;
+  return `안 사려고 했는데 후기가 좋아서 마음이 바뀌었다. 한번 써보기로.`;
+}
+function addPost(p, msg, seed, leader, swayed){
+  const c=p.color;
+  const el=document.createElement('div'); el.className='post'+(seed?' seed':'');
+  el.innerHTML=`
+    <div class="av" style="background:${seed?'var(--accent)':hex2rgba(c,.14)};color:${seed?'#fff':c}">${p.name[0]}</div>
+    <div class="bubble"><div class="who">${p.name} · ${p.arch}${leader?'<span class="lead">LEADER</span>':''}${swayed?' <span style="color:var(--flip);font-weight:600">↻ 설득됨</span>':''}</div>
+    <div class="msg">${msg}</div></div>`;
+  $('#thread').appendChild(el);
+  requestAnimationFrame(()=>setTimeout(()=>el.classList.add('in'),20));
+}
+
+/* ════════════════════════════════════════════════════════════════
+   RESULTS DASHBOARD
+   ════════════════════════════════════════════════════════════════ */
+function renderResults(R){
+  const elastic = Math.abs(R.eps)>1;
+  const epsColor = elastic?'var(--accent)':'var(--buy)';
+  const womUp = R.wom>1;
+  const pct = x => (x*100).toFixed(1)+'%';
+
+  const metrics = `
+    <div class="metrics">
+      <div class="metric hl ${elastic?'up':'dn'}">
+        <div class="ml">가격 탄력성 ε<sub>sim</sub></div>
+        <div class="mv" style="color:${epsColor}">${R.eps.toFixed(2)}</div>
+        <div class="mt">${elastic?'<span class="up">탄력적</span> · |ε|&gt;1 가격 민감':'<span class="dn">비탄력적</span> · |ε|&lt;1 가격 둔감'}</div>
+        <div class="formula">%ΔQ / %ΔP</div>
+      </div>
+      <div class="metric">
+        <div class="ml">구매율 변화</div>
+        <div class="mv">${pct(R.Qbase)}<small> → ${pct(state.discussion?R.Qpost:R.Qpre)}</small></div>
+        <div class="mt">기준가 → ${state.discussion?'토론 후':'+'+state.delta+'%'} · ${R.Qbase>R.Qpost?'<span class="up">▼ '+pct(R.Qbase-(state.discussion?R.Qpost:R.Qpre))+' 이탈</span>':'유지'}</div>
+        <div class="formula">Q(P₀) → Q(${R.m.toFixed(2)}·P₀)</div>
+      </div>
+      <div class="metric hl ${womUp?'up':'dn'}">
+        <div class="ml">구전 승수 WOM<sub>m</sub></div>
+        <div class="mv" style="color:${womUp?'var(--accent)':'var(--buy)'}">${state.discussion?R.wom.toFixed(2):'—'}</div>
+        <div class="mt">${!state.discussion?'토론 OFF':(womUp?'<span class="up">캐스케이드</span> · 토론이 저항 증폭':'<span class="dn">밴드왜건</span> · 토론이 저항 완화')}</div>
+        <div class="formula">ΔQ_post / ΔQ_pre</div>
+      </div>
+      <div class="metric">
+        <div class="ml">의사결정 번복 (FLIP)</div>
+        <div class="mv">${R.b+R.c}<small> 명</small></div>
+        <div class="mt">구매→포기 ${R.b} · 포기→구매 ${R.c} · χ²=${R.chi.toFixed(2)}</div>
+        <div class="formula">McNemar · 본실험 N=1,920서 유의(&gt;3.84)</div>
+      </div>
+    </div>`;
+
+  const charts = `
+    <div class="charts">
+      <div class="chart">
+        <h4>구매율: 1차 vs 토론 후</h4><div class="csub">+${state.delta}% 인상 조건에서의 평균 구매 의향</div>
+        ${barChart(R)}
+      </div>
+      <div class="chart">
+        <h4>수요 곡선 (Demand Curve)</h4><div class="csub">가격 배수에 따른 평균 구매율 · ${state.type==='search'?'탐색재':'경험재'}</div>
+        ${lineChart(R)}
+      </div>
+    </div>`;
+
+  const rows = R.agents.map(a=>`
+    <tr>
+      <td><div class="pn"><div class="av" style="background:${hex2rgba(a.p.color,.14)};color:${a.p.color}">${a.p.name[0]}</div>
+        <div><b style="font-size:12.5px">${a.p.name}</b><div style="font-size:10.5px;color:var(--ink-3)">${a.p.arch}</div></div></div></td>
+      <td><span class="badge ${a.preBuy?'buy':'no'}" style="font-size:10.5px">${a.preBuy?'구매':'포기'}</span></td>
+      <td>${state.discussion?(a.flipped?`<span class="badge flip" style="font-size:10.5px">⇄ ${a.postBuy?'구매':'포기'}</span>`:`<span class="badge ${a.postBuy?'buy':'no'}" style="font-size:10.5px">${a.postBuy?'구매':'포기'}</span>`):'<span style="color:var(--ink-3)">—</span>'}</td>
+      <td class="mono" style="font-size:11px">${a.postConf}/5</td>
+      <td class="rationale">${a.flipped?flipRationale(a):rationale(a.p,state.type,state.discussion?a.postBuy:a.preBuy,state.basePrice*R.m)}</td>
+    </tr>`).join('');
+  const table = `
+    <table class="rtable">
+      <thead><tr><th>페르소나</th><th>1차</th><th>2차(토론후)</th><th>확신도</th><th>판단 근거 (CoT)</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+
+  const verdict = `
+    <div class="oneliner reveal" style="margin-top:22px;display:block;border-left-color:${state.type==='search'?'var(--search)':'var(--exp)'}">
+      <b>해석.</b> ${state.type==='search'
+        ? `모니터(탐색재)는 ε<sub>sim</sub>=${R.eps.toFixed(2)}로 <b>탄력적</b>이며, 토론이 가격 저항을 <b>증폭</b>(WOM<sub>m</sub>=${state.discussion?R.wom.toFixed(2):'—'}&gt;1, 정보 캐스케이드)했습니다. → 인상 전 시드 댓글·초기 후기 관리가 필수.`
+        : `화장품(경험재)은 ε<sub>sim</sub>=${R.eps.toFixed(2)}로 <b>비탄력적</b>이며, 토론이 가격 저항을 <b>완화</b>(WOM<sub>m</sub>=${state.discussion?R.wom.toFixed(2):'—'}&lt;1, 밴드왜건)했습니다. → 브랜드 록인·긍정 후기 확산이 인상을 방어.`}
+    </div>`;
+
+  $('#resultsBody').innerHTML = `<div class="reveal">${metrics}${charts}${table}${verdict}</div>`;
+  requestAnimationFrame(()=>setTimeout(animateBars,100));
+}
+
+/* hand-rolled SVG charts */
+function barChart(R){
+  const data = [
+    { l:'기준가', q:R.Qbase, c:'var(--ink-3)' },
+    { l:'+'+state.delta+'% 1차', q:R.Qpre, c:state.type==='search'?'var(--search)':'var(--exp)' },
+  ];
+  if(state.discussion) data.push({ l:'토론 후', q:R.Qpost, c:R.wom>1?'var(--accent)':'var(--buy)' });
+  const W=320,H=200,pad=34, bw=Math.min(64,(W-pad*2)/data.length-18), gap=((W-pad*2)-bw*data.length)/(data.length-1||1);
+  let bars='';
+  data.forEach((d,i)=>{
+    const x=pad+i*(bw+gap), h=(H-pad-24)*d.q, y=H-24-h;
+    bars+=`<rect class="bar" x="${x}" y="${H-24}" width="${bw}" height="0" rx="5" fill="${d.c}" data-y="${y}" data-h="${h}"></rect>
+      <text x="${x+bw/2}" y="${H-8}" text-anchor="middle" font-size="11" fill="var(--ink-2)" font-family="Pretendard">${d.l}</text>
+      <text class="blab" x="${x+bw/2}" y="${y-7}" text-anchor="middle" font-size="13" font-weight="600" fill="${d.c}" font-family="Fraunces" opacity="0">${(d.q*100).toFixed(0)}%</text>`;
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto">
+    ${[0,0.25,0.5,0.75,1].map(g=>`<line x1="${pad}" x2="${W-pad}" y1="${H-24-(H-pad-24)*g}" y2="${H-24-(H-pad-24)*g}" stroke="var(--line)" stroke-width="1"/>`).join('')}
+    ${bars}</svg>`;
+}
+function animateBars(){
+  document.querySelectorAll('.bar').forEach((b,i)=>{
+    setTimeout(()=>{
+      b.style.transition='y .8s cubic-bezier(.2,.7,.2,1), height .8s cubic-bezier(.2,.7,.2,1)';
+      b.setAttribute('y',b.dataset.y); b.setAttribute('height',b.dataset.h);
+      const lab=b.parentNode.querySelectorAll('.blab')[i]; if(lab){ lab.style.transition='opacity .5s .5s'; lab.style.opacity='1'; }
+    },i*120);
+  });
+}
+function lineChart(R){
+  const W=420,H=200,pad=38;
+  const xs = R.curve.map(p=>p.m), q = R.curve.map(p=>p.q);
+  const xmin=0.85,xmax=1.45;
+  const X = m=>pad+(m-xmin)/(xmax-xmin)*(W-pad-14);
+  const Y = v=>H-26-v*(H-pad-26);
+  const pts = R.curve.map(p=>`${X(p.m).toFixed(1)},${Y(p.q).toFixed(1)}`).join(' ');
+  const col = state.type==='search'?'var(--search)':'var(--exp)';
+  const baseX=X(1),baseY=Y(R.Qbase),raiX=X(R.m),raiY=Y(R.Qpre);
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto">
+    ${[0,0.25,0.5,0.75,1].map(g=>`<line x1="${pad}" x2="${W-14}" y1="${Y(g)}" y2="${Y(g)}" stroke="var(--line)" stroke-width="1"/>
+      <text x="${pad-6}" y="${Y(g)+3}" text-anchor="end" font-size="9" fill="var(--ink-3)" font-family="IBM Plex Mono">${(g*100).toFixed(0)}</text>`).join('')}
+    ${[0.9,1.0,1.1,1.2,1.3,1.4].map(m=>`<text x="${X(m)}" y="${H-10}" text-anchor="middle" font-size="9" fill="var(--ink-3)" font-family="IBM Plex Mono">${m.toFixed(1)}×</text>`).join('')}
+    <polyline points="${pts}" fill="none" stroke="${col}" stroke-width="2.5" stroke-linecap="round"
+      style="stroke-dasharray:600;stroke-dashoffset:600;animation:draw 1.2s .2s forwards"/>
+    <line x1="${baseX}" x2="${baseX}" y1="26" y2="${H-26}" stroke="var(--ink-3)" stroke-width="1" stroke-dasharray="3 3"/>
+    <circle cx="${baseX}" cy="${baseY}" r="4.5" fill="var(--ink)"/>
+    <circle cx="${raiX}" cy="${raiY}" r="4.5" fill="${col}"/>
+    <text x="${baseX}" y="20" text-anchor="middle" font-size="9.5" fill="var(--ink-2)" font-family="IBM Plex Mono">P₀</text>
+    <text x="${raiX}" y="20" text-anchor="middle" font-size="9.5" fill="${col}" font-family="IBM Plex Mono">+${state.delta}%</text>
+    <style>@keyframes draw{to{stroke-dashoffset:0}}</style>
+  </svg>
+  <div class="legend"><div class="li"><span class="sw" style="background:var(--ink)"></span>기준가 P₀</div><div class="li"><span class="sw" style="background:${col}"></span>인상가 ${R.m.toFixed(2)}×P₀</div></div>`;
+}
+
+/* ════════════════════════════════════════════════════════════════ INIT */
+renderFacts(); renderPersonas(); wireConsole(); syncConsole();
+window.closeModal = closeModal;
+</script>
+</body>
 </html>
