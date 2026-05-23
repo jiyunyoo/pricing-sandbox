@@ -295,6 +295,9 @@ footer{ border-top:1px solid var(--line); margin-top:50px; padding:30px 0 50px; 
 @media (max-width:560px){ .pgrid{ grid-template-columns:1fr; } .metrics{ grid-template-columns:1fr; } }
 
 .spin{ width:16px; height:16px; border:2px solid rgba(244,241,233,.35); border-top-color:var(--paper); border-radius:50%; animation:sp .7s linear infinite; }
+.av{ overflow:hidden; }
+.av svg{ display:block; width:100%; height:100%; }
+.post.seed .av{ box-shadow:0 0 0 2px var(--accent); }
 @keyframes sp{ to{ transform:rotate(360deg); } }
 .reveal{ opacity:0; transform:translateY(16px); animation:rv .7s forwards; }
 @keyframes rv{ to{ opacity:1; transform:none; } }
@@ -378,8 +381,8 @@ footer{ border-top:1px solid var(--line); margin-top:50px; padding:30px 0 50px; 
         <div class="field">
           <label>참여 페르소나 / Agents</label>
           <div class="toggle" style="cursor:default">
-            <div style="font-family:'Fraunces',serif; font-size:30px; font-weight:600; line-height:1;">8<span style="font-size:14px;color:var(--ink-3)"> 명</span></div>
-            <div class="tx"><b>통계청 기반 대표 페르소나 8명</b><span>본 실험은 16개 페르소나 × N=30 반복 = 1,920 trials</span></div>
+            <div style="font-family:'Fraunces',serif; font-size:30px; font-weight:600; line-height:1;">16<span style="font-size:14px;color:var(--ink-3)"> 명</span></div>
+            <div class="tx"><b>통계청 기반 16개 페르소나 전체</b><span>4축(경제력 × 가치관 × 가구 × 세대) 공간을 채우는 대표 아키타입</span></div>
           </div>
         </div>
 
@@ -408,7 +411,7 @@ footer{ border-top:1px solid var(--line); margin-top:50px; padding:30px 0 50px; 
     <div><h2 class="serif">시뮬레이션 진행</h2><div class="sub">개별 1차 판단 → 커뮤니티 토론 → 2차 재판단의 흐름을 단계별로 추적합니다.</div></div>
   </div>
   <div id="flowBody">
-    <div class="empty"><div class="ico">▶</div>위에서 조건을 설정하고 <b>‘시뮬레이션 실행’</b>을 누르면 8명의 의사결정 과정이 여기에 펼쳐집니다.</div>
+    <div class="empty"><div class="ico">▶</div>위에서 조건을 설정하고 <b>‘시뮬레이션 실행’</b>을 누르면 16명의 의사결정 과정이 여기에 펼쳐집니다.</div>
   </div>
 </div>
 
@@ -487,6 +490,54 @@ const PERSONAS = [
     interest:{ search:0.85, experience:0.55 },
     life:['신제품 출시 당일 구매','프리미엄 티어 선호','테크 셋업 큐레이션'],
     src:'KOSTAT 가계동향 5분위 · KB 1인가구' },
+  { id:'subin', name:'수빈', en:'Subin', arch:'신혼 실속러', age:32, sex:'여', hh:'신혼부부(무자녀)', region:'경기',
+    income:7200000, incomeNote:'가구 합산 · 사무직 맞벌이', color:'#8A6D3B',
+    values:{ gaseongbi:0.70, gasimbi:0.50, meaningOut:0.35, brand:0.45 },
+    interest:{ search:0.65, experience:0.60 },
+    life:['혼수·가전 스펙 꼼꼼 비교','가계부로 생활비 관리','가끔 자기보상 소비'],
+    src:'KOSTAT 신혼부부 통계 · 가계동향' },
+  { id:'taehyun', name:'태현', en:'Taehyun', arch:'자취 대학생', age:21, sex:'남', hh:'1인(자취)', region:'부산',
+    income:1200000, incomeNote:'아르바이트 + 장학금', color:'#4A6FA5',
+    values:{ gaseongbi:0.90, gasimbi:0.25, meaningOut:0.30, brand:0.25 },
+    interest:{ search:0.70, experience:0.20 },
+    life:['중고거래 적극 활용','최저가 검색 습관화','구독료도 쪼개기'],
+    src:'KOSTAT 청년 1인가구 · 사회조사' },
+  { id:'migyeong', name:'미경', en:'Migyeong', arch:'실속 주부', age:52, sex:'여', hh:'부부+자녀(분가 전)', region:'대구',
+    income:4800000, incomeNote:'가구 합산 · 전업주부', color:'#9C5A6E',
+    values:{ gaseongbi:0.80, gasimbi:0.35, meaningOut:0.20, brand:0.55 },
+    interest:{ search:0.45, experience:0.50 },
+    life:['대형마트 세일 추적','홈쇼핑 단골','검증된 브랜드 선호'],
+    src:'KOSTAT 가계동향 · 5060 소비패턴' },
+  { id:'doyoon', name:'도윤', en:'Doyoon', arch:'럭셔리 전문직', age:36, sex:'남', hh:'1인 가구', region:'서울',
+    income:11000000, incomeNote:'전문직 · 고소득 1인', color:'#2C3E50',
+    values:{ gaseongbi:0.15, gasimbi:0.85, meaningOut:0.35, brand:0.85 },
+    interest:{ search:0.70, experience:0.75 },
+    life:['플래그십·프리미엄 선호','브랜드 경험 중시','가격보다 가치 우선'],
+    src:'KOSTAT 고소득 가구 · KB 부자보고서' },
+  { id:'chaerin', name:'채린', en:'Chaerin', arch:'뷰티 트렌드세터', age:25, sex:'여', hh:'1인 가구', region:'서울',
+    income:2800000, incomeNote:'콘텐츠·뷰티 종사', color:'#C44D6E',
+    values:{ gaseongbi:0.35, gasimbi:0.80, meaningOut:0.55, brand:0.60 },
+    interest:{ search:0.35, experience:0.92 },
+    life:['신상 화장품 즉시 구매','SNS 후기 작성','성분·컬러 분석'],
+    src:'오픈서베이 뷰티 · KISDI 미디어패널' },
+  { id:'sangcheol', name:'상철', en:'Sangcheol', arch:'은퇴 준비 베이비부머', age:58, sex:'남', hh:'부부', region:'광주',
+    income:4000000, incomeNote:'정규직 말년 · 노후 대비', color:'#6B6043',
+    values:{ gaseongbi:0.75, gasimbi:0.25, meaningOut:0.25, brand:0.50 },
+    interest:{ search:0.50, experience:0.25 },
+    life:['보수적 지출 관리','내구재는 오래 사용','신기술엔 신중'],
+    src:'KOSTAT 고령층 부가조사 · BOK' },
+  { id:'haeun', name:'하은', en:'Haeun', arch:'커리어 딩크', age:40, sex:'여', hh:'부부(무자녀)', region:'서울',
+    income:8500000, incomeNote:'가구 합산 · 전문 관리직', color:'#5B7065',
+    values:{ gaseongbi:0.45, gasimbi:0.70, meaningOut:0.50, brand:0.55 },
+    interest:{ search:0.60, experience:0.70 },
+    life:['시간 절약형 소비','자기계발·뷰티 투자','품질 우선'],
+    src:'KOSTAT 맞벌이·무자녀 가구' },
+  { id:'gwangsu', name:'광수', en:'Gwangsu', arch:'자영업 가장', age:47, sex:'남', hh:'부부+자녀1', region:'대전',
+    income:5000000, incomeNote:'자영업 · 변동 소득', color:'#8C4A2F',
+    values:{ gaseongbi:0.88, gasimbi:0.20, meaningOut:0.15, brand:0.30 },
+    interest:{ search:0.55, experience:0.15 },
+    life:['현금흐름에 민감','사업·생활 지출 분리','실용 최우선'],
+    src:'KOSTAT 자영업 가구 · 가계동향' },
 ];
 
 const FACTS = [
@@ -663,7 +714,53 @@ function comment(agent, type, swayed){
    ════════════════════════════════════════════════════════════════ */
 const $ = s => document.querySelector(s);
 const hex2rgba = (h,a)=>{ const n=parseInt(h.slice(1),16); return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`; };
+const shade = (h,amt)=>{ let n=parseInt(h.slice(1),16),r=n>>16&255,g=n>>8&255,b=n&255;
+  const m=amt<0?0:255,t=Math.abs(amt); r=Math.round(r+(m-r)*t); g=Math.round(g+(m-g)*t); b=Math.round(b+(m-b)*t);
+  return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1); };
 const VAL_LABELS = { gaseongbi:'가성', gasimbi:'가심', meaningOut:'미닝', brand:'브랜' };
+
+/* ── illustrated character avatars (parametric inline SVG) ── */
+const FACE = {
+  minjun:   { skin:'#EAB892', hair:'#2A2320', glasses:true },
+  seojin:   { skin:'#F3CDA8', hair:'#3B2A1E', long:true, earring:true, lip:'#C06A6A' },
+  hyeonwoo: { skin:'#E8C4A0', hair:'#2A2320' },
+  jihye:    { skin:'#EAB892', hair:'#2E211A', long:true },
+  jongho:   { skin:'#DFAE86', hair:'#2A2320', beard:true },
+  yeongja:  { skin:'#E8C4A0', hair:'#B8B0A6', glasses:true },
+  daeun:    { skin:'#F3CDA8', hair:'#7A4FA0', long:true, earring:true },
+  junseok:  { skin:'#EAB892', hair:'#241E1B' },
+  subin:    { skin:'#F0D0B0', hair:'#3B2A1E', long:true },
+  taehyun:  { skin:'#E8C4A0', hair:'#2A2320', earphones:true },
+  migyeong: { skin:'#DFAE86', hair:'#6A5446' },
+  doyoon:   { skin:'#EAB892', hair:'#241E1B' },
+  chaerin:  { skin:'#F3CDA8', hair:'#6B2B3A', long:true, earring:true, lip:'#C0405A' },
+  sangcheol:{ skin:'#DFAE86', hair:'#9A9088', glasses:true, recede:true },
+  haeun:    { skin:'#EAB892', hair:'#2E211A' },
+  gwangsu:  { skin:'#DFAE86', hair:'#2A2320', beard:true },
+};
+function avatarSVG(p){
+  const f = FACE[p.id] || { skin:'#EAB892', hair:'#2A2320' };
+  const skin=f.skin, hair=f.hair, cloth=p.color, browC=shade(hair,-0.1), eye='#3a302a';
+  let s = `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">`;
+  s += `<rect width="100" height="100" fill="${hex2rgba(cloth,0.16)}"/>`;
+  if(f.long) s += `<path d="M22,50 C22,28 78,28 78,50 L78,96 C78,82 70,76 70,76 L30,76 C30,76 22,82 22,96 Z" fill="${hair}"/>`;
+  s += `<path d="M14,100 C14,80 31,73 50,73 C69,73 86,80 86,100 Z" fill="${cloth}"/>`;
+  s += `<path d="M41,76 L50,86 L59,76 Z" fill="${shade(cloth,0.18)}" opacity=".55"/>`;
+  s += `<rect x="43" y="60" width="14" height="17" rx="6" fill="${shade(skin,-0.07)}"/>`;
+  s += `<ellipse cx="50" cy="49" rx="24" ry="26" fill="${skin}"/>`;
+  s += `<circle cx="26" cy="51" r="4" fill="${skin}"/><circle cx="74" cy="51" r="4" fill="${skin}"/>`;
+  if(f.earring){ s += `<circle cx="26" cy="57" r="2.2" fill="${cloth}"/><circle cx="74" cy="57" r="2.2" fill="${cloth}"/>`; }
+  if(f.recede) s += `<path d="M30,38 C33,27 67,27 70,38 C65,33 58,31 50,31 C42,31 35,33 30,38 Z" fill="${hair}"/>`;
+  else s += `<path d="M26,47 C24,25 76,25 74,47 C74,38 69,29 50,29 C31,29 26,38 26,47 Z" fill="${hair}"/>`;
+  s += `<rect x="37" y="43" width="9" height="2.4" rx="1.2" fill="${browC}"/><rect x="54" y="43" width="9" height="2.4" rx="1.2" fill="${browC}"/>`;
+  s += `<circle cx="42" cy="49" r="2.4" fill="${eye}"/><circle cx="58" cy="49" r="2.4" fill="${eye}"/>`;
+  if(f.glasses) s += `<g fill="none" stroke="${eye}" stroke-width="1.6"><rect x="35" y="45" width="12" height="9" rx="3"/><rect x="53" y="45" width="12" height="9" rx="3"/><line x1="47" y1="49" x2="53" y2="49"/></g>`;
+  if(f.beard) s += `<path d="M31,52 C33,67 44,74 50,74 C56,74 67,67 69,52 C64,61 56,63 50,63 C44,63 36,61 31,52 Z" fill="${hair}" opacity=".5"/>`;
+  s += `<path d="M44,59 Q50,63 56,59" fill="none" stroke="${f.lip||'#B06A5A'}" stroke-width="2" stroke-linecap="round"/>`;
+  if(f.earphones) s += `<path d="M24,45 C24,29 76,29 76,45" fill="none" stroke="#2a2320" stroke-width="2.5"/><rect x="20" y="45" width="7" height="13" rx="3" fill="#2a2320"/><rect x="73" y="45" width="7" height="13" rx="3" fill="#2a2320"/>`;
+  s += `</svg>`;
+  return s;
+}
 
 function renderFacts(){
   $('#facts').innerHTML = FACTS.map(f=>`
@@ -673,7 +770,7 @@ function renderPersonas(){
   $('#pgrid').innerHTML = PERSONAS.map((p,idx)=>`
     <button class="pcard reveal" style="animation-delay:${idx*55}ms" data-idx="${idx}">
       <div class="top">
-        <div class="av" style="background:${hex2rgba(p.color,.14)};color:${p.color}">${p.name[0]}</div>
+        <div class="av">${avatarSVG(p)}</div>
         <div><div class="nm">${p.name} <span style="font-weight:400;color:var(--ink-3);font-size:11px">${p.en}</span></div><div class="ar">${p.arch}</div></div>
       </div>
       <div class="meta">${p.sex}·${p.age} · ${p.hh} · ${won(p.income)}/월</div>
@@ -697,7 +794,7 @@ function syncConsole(){
   const np = state.basePrice*(1+state.delta/100);
   $('#deltaBadge').innerHTML = (state.delta>=0?'+':'')+state.delta+'<small>%</small>';
   $('#priceLine').innerHTML = `${state.name} · <s>${won(state.basePrice)}</s> → <b>${won(np)}</b> <span style="color:var(--ink-3)">(${state.src})</span>`;
-  $('#cfgNote').textContent = `${state.type==='search'?'탐색재':'경험재'} · ${(state.delta>=0?'+':'')+state.delta}% · 토론 ${state.discussion?'ON':'OFF'} · 8 agents`;
+  $('#cfgNote').textContent = `${state.type==='search'?'탐색재':'경험재'} · ${(state.delta>=0?'+':'')+state.delta}% · 토론 ${state.discussion?'ON':'OFF'} · 16 agents`;
   $('#console').style.setProperty('--x','0');
 }
 function wireConsole(){
@@ -736,7 +833,7 @@ function openModal(idx){
 }`;
   $('#modal').innerHTML = `
     <div class="mh">
-      <div class="av" style="background:${hex2rgba(p.color,.14)};color:${p.color}">${p.name[0]}</div>
+      <div class="av">${avatarSVG(p)}</div>
       <div><h3>${p.name} <span style="font-weight:400;color:var(--ink-3);font-size:13px">${p.en}</span></h3><div class="ar">${p.arch} · ${p.sex}·${p.age} · ${p.region}</div></div>
       <button class="x" onclick="closeModal()">✕</button>
     </div>
@@ -802,7 +899,7 @@ async function run(){
     el.innerHTML=reactRow(a, a.preBuy, a.preConf, rationale(a.p,state.type,a.preBuy,state.basePrice*R.m), false);
     $('#react1').appendChild(el);
     requestAnimationFrame(()=>setTimeout(()=>el.classList.add('in'),20));
-    await sleep(160);
+    await sleep(95);
   }
   $('#cfgNote2'); await sleep(350);
 
@@ -852,7 +949,7 @@ async function run(){
       if(a.flipped) el.style.borderColor='var(--flip)';
       $('#react2').appendChild(el);
       requestAnimationFrame(()=>setTimeout(()=>el.classList.add('in'),20));
-      await sleep(150);
+      await sleep(85);
     }
   } else { setStep(5); }
 
@@ -870,7 +967,7 @@ function reactRow(a, buy, confidence, text, flip){
     ? `<span class="badge flip">⇄ ${buy?'구매':'포기'} (FLIP)</span>`
     : `<span class="badge ${buy?'buy':'no'}">${buy?'● 구매':'○ 포기'}</span>`;
   return `
-    <div class="av" style="background:${hex2rgba(c,.14)};color:${c}">${a.p.name[0]}</div>
+    <div class="av">${avatarSVG(a.p)}</div>
     <div><div class="nm">${a.p.name} <span style="font-weight:400;color:var(--ink-3);font-size:11px">${a.p.arch}</span>${a.isLeader?' <span class="mono" style="font-size:9px;background:var(--accent);color:#fff;padding:1px 5px;border-radius:4px">LEADER</span>':''}</div>
     <div class="cot">“${text}”</div></div>
     <div class="verdict">${badge}<div class="conf">confidence ${'●'.repeat(confidence)}${'○'.repeat(5-confidence)}</div></div>`;
@@ -883,7 +980,7 @@ function addPost(p, msg, seed, leader, swayed){
   const c=p.color;
   const el=document.createElement('div'); el.className='post'+(seed?' seed':'');
   el.innerHTML=`
-    <div class="av" style="background:${seed?'var(--accent)':hex2rgba(c,.14)};color:${seed?'#fff':c}">${p.name[0]}</div>
+    <div class="av">${avatarSVG(p)}</div>
     <div class="bubble"><div class="who">${p.name} · ${p.arch}${leader?'<span class="lead">LEADER</span>':''}${swayed?' <span style="color:var(--flip);font-weight:600">↻ 설득됨</span>':''}</div>
     <div class="msg">${msg}</div></div>`;
   $('#thread').appendChild(el);
@@ -941,7 +1038,7 @@ function renderResults(R){
 
   const rows = R.agents.map(a=>`
     <tr>
-      <td><div class="pn"><div class="av" style="background:${hex2rgba(a.p.color,.14)};color:${a.p.color}">${a.p.name[0]}</div>
+      <td><div class="pn"><div class="av">${avatarSVG(a.p)}</div>
         <div><b style="font-size:12.5px">${a.p.name}</b><div style="font-size:10.5px;color:var(--ink-3)">${a.p.arch}</div></div></div></td>
       <td><span class="badge ${a.preBuy?'buy':'no'}" style="font-size:10.5px">${a.preBuy?'구매':'포기'}</span></td>
       <td>${state.discussion?(a.flipped?`<span class="badge flip" style="font-size:10.5px">⇄ ${a.postBuy?'구매':'포기'}</span>`:`<span class="badge ${a.postBuy?'buy':'no'}" style="font-size:10.5px">${a.postBuy?'구매':'포기'}</span>`):'<span style="color:var(--ink-3)">—</span>'}</td>
