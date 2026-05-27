@@ -381,8 +381,8 @@ footer{ border-top:1px solid var(--line); margin-top:50px; padding:30px 0 50px; 
         <div class="field">
           <label>참여 페르소나 / Agents</label>
           <div class="toggle" style="cursor:default">
-            <div style="font-family:'Fraunces',serif; font-size:30px; font-weight:600; line-height:1;">16<span style="font-size:14px;color:var(--ink-3)"> 명</span></div>
-            <div class="tx"><b>통계청 기반 16개 페르소나 전체</b><span>4축(경제력 × 가치관 × 가구 × 세대) 공간을 채우는 대표 아키타입</span></div>
+            <div style="font-family:'Fraunces',serif; font-size:30px; font-weight:600; line-height:1;">16<span style="font-size:14px;color:var(--ink-3)"> 아키타입</span></div>
+            <div class="tx"><b>16개 아키타입 (군집 중심)</b><span>본 실험은 이 골격 위에서 N=100~1,000명을 결합확률 샘플링 · 데모는 16개 군집 중심을 대표 표시</span></div>
           </div>
         </div>
 
@@ -399,7 +399,7 @@ footer{ border-top:1px solid var(--line); margin-top:50px; padding:30px 0 50px; 
 <div class="wrap sec" id="sec-personas">
   <div class="sechead">
     <div class="num">02</div>
-    <div><h2 class="serif">페르소나 라이브러리</h2><div class="sub">통계청·한국은행·KB·KPMG 자료로 4축(경제력 × 가치관 × 가구 × 세대) 구성. 카드를 클릭하면 시스템 프롬프트 페이로드와 출처를 볼 수 있습니다.</div></div>
+    <div><h2 class="serif">페르소나 라이브러리</h2><div class="sub">통계청·한국은행·KB·KPMG 자료로 4축(경제력 × 가치관 × 가구 × 세대) 공간의 <b>16개 아키타입(군집 중심)</b>을 정의. 본 실험은 이를 MDIS 교차표에 결합확률로 정합시켜 N=100~1,000명 모집단을 생성합니다. 카드를 클릭하면 4중 레이어 페이로드와 출처를 볼 수 있습니다.</div></div>
   </div>
   <div class="pgrid" id="pgrid"></div>
 </div>
@@ -447,96 +447,112 @@ const PERSONAS = [
     values:{ gaseongbi:0.85, gasimbi:0.20, meaningOut:0.15, brand:0.30 },
     interest:{ search:0.90, experience:0.10 },
     life:['스펙 5곳 이상 비교 후 구매','테크 커뮤니티 활동','모니터 2년 주기 교체'],
+    constraint:'탐색 체력 충분 · 스펙 비교 적극 · 낮은 전환비용', vibe:'퀘이사존·클리앙 정보공유체',
     src:'KOSTAT 가계동향 3분위 · 1인가구 평균소득' },
   { id:'seojin', name:'서진', en:'Seojin', arch:'가심비 워커', age:28, sex:'여', hh:'1인 가구', region:'서울',
     income:4200000, incomeNote:'3분위 상 · 마케팅 AM', color:'#A8552C',
     values:{ gaseongbi:0.25, gasimbi:0.85, meaningOut:0.30, brand:0.70 },
     interest:{ search:0.30, experience:0.85 },
     life:['뷰티·여행에 소득 18% 지출','선호 화장품 3~4개 브랜드 충성','K-뷰티 리뷰 정독'],
+    constraint:'선호 브랜드 정착 · 전환비용 높음', vibe:'인스타그램 큐레이션체',
     src:'KOSTAT 사회조사 · KPMG Liquid Consumption' },
   { id:'hyeonwoo', name:'현우', en:'Hyeonwoo', arch:'미닝아웃 청년', age:24, sex:'남', hh:'부모 동거', region:'경기',
     income:2500000, incomeNote:'스타트업 인턴 + 용돈', color:'#3C7A52',
     values:{ gaseongbi:0.40, gasimbi:0.40, meaningOut:0.85, brand:0.30 },
     interest:{ search:0.50, experience:0.70 },
     life:['ESG·가치 기반 소비','지속가능·인디 브랜드 선호','리퍼·중고 가전 구매'],
+    constraint:'가치 불일치 시 즉시 이탈 · 윤리 소비 우선', vibe:'트위터·커뮤니티 가치소비체',
     src:'대한상의 MZ ESG 선호 64% · 오픈서베이' },
   { id:'jihye', name:'지혜', en:'Jihye', arch:'균형 맞벌이맘', age:38, sex:'여', hh:'부부+자녀2', region:'경기',
     income:9000000, incomeNote:'가구 합산 · 중견 경력', color:'#B07A12',
     values:{ gaseongbi:0.65, gasimbi:0.55, meaningOut:0.30, brand:0.50 },
     interest:{ search:0.70, experience:0.55 },
     life:['생필품은 PB로 절약','자녀 교육엔 프리미엄','사교육에 소득 18%'],
+    constraint:'자녀용은 탐색, 본인용은 시간 부족(탐색 체력 낮음)', vibe:'맘카페 정보공유체',
     src:'KOSTAT 가계동향 4분위 · 사회조사' },
   { id:'jongho', name:'종호', en:'Jongho', arch:'절약 가장', age:45, sex:'남', hh:'부부+자녀2', region:'인천',
     income:5500000, incomeNote:'제조 중간관리자 · 주담대', color:'#5A5249',
     values:{ gaseongbi:0.95, gasimbi:0.10, meaningOut:0.10, brand:0.20 },
     interest:{ search:0.55, experience:0.10 },
     life:['짠테크 실천','모니터 5년 이상 사용','화장품엔 무관심'],
+    constraint:'탐색 체력 최상 · 최저가 추적 · 전환 적극', vibe:'디시·뽐뿌 가성비체',
     src:'KOSTAT 가계동향 · BOK 부채 이슈노트' },
   { id:'yeongja', name:'영자', en:'Yeongja', arch:'브랜드 충성 시니어', age:68, sex:'여', hh:'1인 가구', region:'부산',
     income:1800000, incomeNote:'연금 + 가족 지원', color:'#7A4FA0',
     values:{ gaseongbi:0.30, gasimbi:0.30, meaningOut:0.10, brand:0.95 },
     interest:{ search:0.10, experience:0.40 },
     life:['같은 스킨케어 20년 이상 사용','의료비에 12% 지출','새 브랜드 회피'],
+    constraint:'20년 정착템 · 전환비용 극상 · 신규 브랜드 회피(trauma)', vibe:'보수적·신중체',
     src:'KOSTAT 2025 1인가구 · 고령자 통계' },
   { id:'daeun', name:'다은', en:'Daeun', arch:'Gen-Z 탐색러', age:22, sex:'여', hh:'기숙사', region:'서울',
     income:1500000, incomeNote:'아르바이트 + 가족', color:'#C0402A',
     values:{ gaseongbi:0.60, gasimbi:0.70, meaningOut:0.65, brand:0.55 },
     interest:{ search:0.45, experience:0.85 },
     life:['틱톡 기반 발견 소비','연 3~5개 신규 브랜드 시도','퍼스널컬러 진단 애호'],
+    constraint:'신규 브랜드 적극 시도 · 전환비용 낮음', vibe:'틱톡·코덕체',
     src:'KISDI 미디어패널 · KPMG MZ 보고서' },
   { id:'junseok', name:'준석', en:'Junseok', arch:'얼리어답터', age:34, sex:'남', hh:'부부(무자녀)', region:'서울',
     income:6500000, incomeNote:'시니어 개발자 · DINK', color:'#1F6B6B',
     values:{ gaseongbi:0.40, gasimbi:0.75, meaningOut:0.40, brand:0.65 },
     interest:{ search:0.85, experience:0.55 },
     life:['신제품 출시 당일 구매','프리미엄 티어 선호','테크 셋업 큐레이션'],
+    constraint:'신제품 당일 구매 · 탐색 적극 · 여유 자금', vibe:'테크 커뮤니티 큐레이션체',
     src:'KOSTAT 가계동향 5분위 · KB 1인가구' },
   { id:'subin', name:'수빈', en:'Subin', arch:'신혼 실속러', age:32, sex:'여', hh:'신혼부부(무자녀)', region:'경기',
     income:7200000, incomeNote:'가구 합산 · 사무직 맞벌이', color:'#8A6D3B',
     values:{ gaseongbi:0.70, gasimbi:0.50, meaningOut:0.35, brand:0.45 },
     interest:{ search:0.65, experience:0.60 },
     life:['혼수·가전 스펙 꼼꼼 비교','가계부로 생활비 관리','가끔 자기보상 소비'],
+    constraint:'혼수·가전 스펙 꼼꼼 비교 · 가계부 관리', vibe:'신혼 카페 실속체',
     src:'KOSTAT 신혼부부 통계 · 가계동향' },
   { id:'taehyun', name:'태현', en:'Taehyun', arch:'자취 대학생', age:21, sex:'남', hh:'1인(자취)', region:'부산',
     income:1200000, incomeNote:'아르바이트 + 장학금', color:'#4A6FA5',
     values:{ gaseongbi:0.90, gasimbi:0.25, meaningOut:0.30, brand:0.25 },
     interest:{ search:0.70, experience:0.20 },
     life:['중고거래 적극 활용','최저가 검색 습관화','구독료도 쪼개기'],
+    constraint:'최저가·중고 적극 · 구독료 쪼개기 · 예산 빠듯', vibe:'에브리타임·디시체',
     src:'KOSTAT 청년 1인가구 · 사회조사' },
   { id:'migyeong', name:'미경', en:'Migyeong', arch:'실속 주부', age:52, sex:'여', hh:'부부+자녀(분가 전)', region:'대구',
     income:4800000, incomeNote:'가구 합산 · 전업주부', color:'#9C5A6E',
     values:{ gaseongbi:0.80, gasimbi:0.35, meaningOut:0.20, brand:0.55 },
     interest:{ search:0.45, experience:0.50 },
     life:['대형마트 세일 추적','홈쇼핑 단골','검증된 브랜드 선호'],
+    constraint:'검증된 브랜드 선호 · 세일·홈쇼핑 추적', vibe:'홈쇼핑·맘카페체',
     src:'KOSTAT 가계동향 · 5060 소비패턴' },
   { id:'doyoon', name:'도윤', en:'Doyoon', arch:'럭셔리 전문직', age:36, sex:'남', hh:'1인 가구', region:'서울',
     income:11000000, incomeNote:'전문직 · 고소득 1인', color:'#2C3E50',
     values:{ gaseongbi:0.15, gasimbi:0.85, meaningOut:0.35, brand:0.85 },
     interest:{ search:0.70, experience:0.75 },
     life:['플래그십·프리미엄 선호','브랜드 경험 중시','가격보다 가치 우선'],
+    constraint:'가격보다 가치 우선 · 가격 민감도 낮음', vibe:'프리미엄 리뷰체',
     src:'KOSTAT 고소득 가구 · KB 부자보고서' },
   { id:'chaerin', name:'채린', en:'Chaerin', arch:'뷰티 트렌드세터', age:25, sex:'여', hh:'1인 가구', region:'서울',
     income:2800000, incomeNote:'콘텐츠·뷰티 종사', color:'#C44D6E',
     values:{ gaseongbi:0.35, gasimbi:0.80, meaningOut:0.55, brand:0.60 },
     interest:{ search:0.35, experience:0.92 },
     life:['신상 화장품 즉시 구매','SNS 후기 작성','성분·컬러 분석'],
+    constraint:'신상 즉시 구매 · 성분·컬러 분석 · 잦은 전환', vibe:'SNS 뷰티 인플루언서체',
     src:'오픈서베이 뷰티 · KISDI 미디어패널' },
   { id:'sangcheol', name:'상철', en:'Sangcheol', arch:'은퇴 준비 베이비부머', age:58, sex:'남', hh:'부부', region:'광주',
     income:4000000, incomeNote:'정규직 말년 · 노후 대비', color:'#6B6043',
     values:{ gaseongbi:0.75, gasimbi:0.25, meaningOut:0.25, brand:0.50 },
     interest:{ search:0.50, experience:0.25 },
     life:['보수적 지출 관리','내구재는 오래 사용','신기술엔 신중'],
+    constraint:'내구재 장기 사용 · 신기술 신중 · 노후 대비', vibe:'무미건조 신중체',
     src:'KOSTAT 고령층 부가조사 · BOK' },
   { id:'haeun', name:'하은', en:'Haeun', arch:'커리어 딩크', age:40, sex:'여', hh:'부부(무자녀)', region:'서울',
     income:8500000, incomeNote:'가구 합산 · 전문 관리직', color:'#5B7065',
     values:{ gaseongbi:0.45, gasimbi:0.70, meaningOut:0.50, brand:0.55 },
     interest:{ search:0.60, experience:0.70 },
     life:['시간 절약형 소비','자기계발·뷰티 투자','품질 우선'],
+    constraint:'시간 절약형 소비 · 품질 우선 · 탐색 체력 낮음', vibe:'효율 중시 전문직체',
     src:'KOSTAT 맞벌이·무자녀 가구' },
   { id:'gwangsu', name:'광수', en:'Gwangsu', arch:'자영업 가장', age:47, sex:'남', hh:'부부+자녀1', region:'대전',
     income:5000000, incomeNote:'자영업 · 변동 소득', color:'#8C4A2F',
     values:{ gaseongbi:0.88, gasimbi:0.20, meaningOut:0.15, brand:0.30 },
     interest:{ search:0.55, experience:0.15 },
     life:['현금흐름에 민감','사업·생활 지출 분리','실용 최우선'],
+    constraint:'현금흐름에 민감 · 실용 최우선 · 변동 소득', vibe:'실용·직설 아재체',
     src:'KOSTAT 자영업 가구 · 가계동향' },
 ];
 
@@ -825,11 +841,11 @@ function openModal(idx){
   const payload =
 `{
   "persona_id": <span class="s">"${p.id}_01"</span>,
-  "demographics": { "sex": <span class="s">"${p.sex==='남'?'M':'F'}"</span>, "age": <span class="n">${p.age}</span>, "household": <span class="s">"${p.hh}"</span>, "region": <span class="s">"${p.region}"</span> },
-  "economics":    { "income_krw": <span class="n">${p.income}</span>, "note": <span class="s">"${p.incomeNote}"</span> },
-  "values":       { "ga_seong_bi": <span class="n">${p.values.gaseongbi}</span>, "ga_sim_bi": <span class="n">${p.values.gasimbi}</span>, "meaning_out": <span class="n">${p.values.meaningOut}</span>, "brand": <span class="n">${p.values.brand}</span> },
-  "lifestyle":    { "search_interest": <span class="n">${p.interest.search}</span>, "experience_interest": <span class="n">${p.interest.experience}</span> },
-  "output_schema":{ "buy": <span class="s">"bool"</span>, "confidence": <span class="s">"1..5"</span>, "rationale_cot": <span class="s">"string"</span> }
+  "L1_demographics_budget": { "sex": <span class="s">"${p.sex==='남'?'M':'F'}"</span>, "age": <span class="n">${p.age}</span>, "household": <span class="s">"${p.hh}"</span>, "region": <span class="s">"${p.region}"</span>, "income_krw": <span class="n">${p.income}</span>, "source": <span class="s">"KOSIS·MDIS"</span> },
+  "L2_psychographics": { "ga_seong_bi": <span class="n">${p.values.gaseongbi}</span>, "ga_sim_bi": <span class="n">${p.values.gasimbi}</span>, "meaning_out": <span class="n">${p.values.meaningOut}</span>, "brand": <span class="n">${p.values.brand}</span>, "source": <span class="s">"OpenSurvey·KISDI"</span> },
+  "L3_history_constraints": { "constraint": <span class="s">"${p.constraint}"</span>, "search_interest": <span class="n">${p.interest.search}</span>, "experience_interest": <span class="n">${p.interest.experience}</span> },
+  "L4_macro_vibe": { "macro": <span class="s">"고물가 체감 · 실질 가용자금 축소(BOK CSI)"</span>, "vibe": <span class="s">"${p.vibe}"</span> },
+  "output_schema": { "buy": <span class="s">"bool"</span>, "confidence": <span class="s">"1..5"</span>, "rationale_cot": <span class="s">"string"</span> }
 }`;
   $('#modal').innerHTML = `
     <div class="mh">
@@ -838,25 +854,28 @@ function openModal(idx){
       <button class="x" onclick="closeModal()">✕</button>
     </div>
     <div class="mb">
-      <div class="block"><div class="bt">① Demographics</div>
+      <div class="block"><div class="bt">① Layer 1 · 인구통계 & 예산 제약</div>
         <div class="kv"><span class="k">가구 구조</span><span class="v">${p.hh}</span></div>
-        <div class="kv"><span class="k">연령 · 성별</span><span class="v">${p.age} · ${p.sex}</span></div>
-        <div class="kv"><span class="k">거주지</span><span class="v">${p.region}</span></div>
-      </div>
-      <div class="block"><div class="bt">② Economics</div>
-        <div class="kv"><span class="k">월 실수령</span><span class="v">${won(p.income)}</span></div>
+        <div class="kv"><span class="k">연령 · 성별</span><span class="v">${p.age} · ${p.sex} · ${p.region}</span></div>
+        <div class="kv"><span class="k">월 실수령 (Hard Limit)</span><span class="v">${won(p.income)}</span></div>
         <div class="kv"><span class="k">비고</span><span class="v">${p.incomeNote}</span></div>
       </div>
-      <div class="block"><div class="bt">③ Values · 가치관 가중치</div>
+      <div class="block"><div class="bt">② Layer 2 · 심리·행동 성향 (가치관 가중치)</div>
         ${['gaseongbi','gasimbi','meaningOut','brand'].map(k=>`
           <div class="gauge" style="margin:7px 0"><span class="gl" style="width:64px">${({gaseongbi:'가성비',gasimbi:'가심비',meaningOut:'미닝아웃',brand:'브랜드'})[k]}</span>
           <div class="gt" style="height:7px"><div class="gf" style="width:${p.values[k]*100}%;background:${p.color}"></div></div>
           <span class="mono" style="font-size:11px;width:34px;text-align:right">${p.values[k].toFixed(2)}</span></div>`).join('')}
+        <div class="kv" style="margin-top:6px"><span class="k">관심도</span><span class="v">탐색재 ${Math.round(p.interest.search*100)} · 경험재 ${Math.round(p.interest.experience*100)}</span></div>
       </div>
-      <div class="block"><div class="bt">④ Lifestyle</div>
+      <div class="block"><div class="bt">③ Layer 3 · 과거 경험 & 제약 (전환비용)</div>
+        <div class="kv"><span class="k">전환비용·탐색</span><span class="v" style="font-family:inherit;font-weight:400">${p.constraint}</span></div>
         ${p.life.map(l=>`<div class="kv"><span class="k">·</span><span class="v" style="font-family:inherit;font-weight:400">${l}</span></div>`).join('')}
       </div>
-      <div class="block"><div class="bt">System Prompt Payload</div>
+      <div class="block"><div class="bt">④ Layer 4 · 거시경제 & 커뮤니티 화법</div>
+        <div class="kv"><span class="k">체감 경제</span><span class="v" style="font-family:inherit;font-weight:400">고물가 체감 · 실질 가용자금 축소 (BOK CSI)</span></div>
+        <div class="kv"><span class="k">화법 (Vibe)</span><span class="v" style="font-family:inherit;font-weight:400">${p.vibe}</span></div>
+      </div>
+      <div class="block"><div class="bt">System Prompt Payload (4-Layer)</div>
         <div class="payload">${payload}</div>
       </div>
       <div class="srcnote"><b>데이터 출처:</b> ${p.src} — 모든 페르소나 변수는 통계 원자료로 추적 가능합니다.</div>
