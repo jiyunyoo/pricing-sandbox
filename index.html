@@ -125,6 +125,8 @@ button{ font-family:inherit; cursor:pointer; }
 .field{ margin-bottom:20px; }
 .field > label{ display:block; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); font-weight:600; margin-bottom:9px; }
 .seg{ display:flex; gap:7px; }
+.popopt{ flex:1; border:1px solid var(--line-2); background:var(--paper); border-radius:9px; padding:8px 6px; font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink-2); cursor:pointer; transition:all .16s; }
+.popopt.on{ border-color:var(--ink); background:var(--ink); color:var(--paper); box-shadow:0 0 0 1px var(--ink); }
 .seg .opt{
   flex:1; border:1px solid var(--line-2); background:var(--paper); border-radius:11px;
   padding:13px 14px; text-align:left; transition:all .18s; position:relative;
@@ -381,8 +383,13 @@ footer{ border-top:1px solid var(--line); margin-top:50px; padding:30px 0 50px; 
         <div class="field">
           <label>참여 페르소나 / Agents</label>
           <div class="toggle" style="cursor:default">
-            <div style="font-family:'Fraunces',serif; font-size:30px; font-weight:600; line-height:1;">16<span style="font-size:14px;color:var(--ink-3)"> 아키타입</span></div>
-            <div class="tx"><b>16개 아키타입 (군집 중심)</b><span>본 실험은 이 골격 위에서 N=100~1,000명을 결합확률 샘플링 · 데모는 16개 군집 중심을 대표 표시</span></div>
+            <div style="font-family:'Fraunces',serif; font-size:30px; font-weight:600; line-height:1;" id="popN">320<span style="font-size:14px;color:var(--ink-3)"> 명</span></div>
+            <div class="tx"><b>16 아키타입 × <span id="popK">20</span> = <span id="popNlabel">320</span>명 샘플</b><span>통계청 교차표에 결합확률로 정합된 모집단 · 화면 카드는 16개 군집 중심을 대표 표시</span></div>
+          </div>
+          <div class="seg" id="popSeg" style="margin-top:8px">
+            <button class="popopt" data-k="1">N=16 (아키타입)</button>
+            <button class="popopt on" data-k="20">N=320</button>
+            <button class="popopt" data-k="32">N=512</button>
           </div>
         </div>
 
@@ -408,10 +415,10 @@ footer{ border-top:1px solid var(--line); margin-top:50px; padding:30px 0 50px; 
 <div class="wrap sec" id="sec-flow">
   <div class="sechead">
     <div class="num">03</div>
-    <div><h2 class="serif">시뮬레이션 진행</h2><div class="sub">개별 1차 판단 → 커뮤니티 토론 → 2차 재판단의 흐름을 단계별로 추적합니다.</div></div>
+    <div><h2 class="serif">시뮬레이션 진행</h2><div class="sub">개별 1차 판단 → 커뮤니티 토론 → 2차 재판단의 흐름을 추적합니다. 아래 카드는 모집단(N)을 대표하는 <b>16개 아키타입</b>이며, 지표는 전체 모집단에서 집계됩니다.</div></div>
   </div>
   <div id="flowBody">
-    <div class="empty"><div class="ico">▶</div>위에서 조건을 설정하고 <b>‘시뮬레이션 실행’</b>을 누르면 16명의 의사결정 과정이 여기에 펼쳐집니다.</div>
+    <div class="empty"><div class="ico">▶</div>위에서 조건을 설정하고 <b>‘시뮬레이션 실행’</b>을 누르면 모집단의 의사결정 과정이 16개 아키타입 대표로 여기에 펼쳐집니다.</div>
   </div>
 </div>
 
@@ -570,6 +577,7 @@ const FACTS = [
 const state = {
   type:'search', name:'27인치 1440p 모니터', basePrice:300000, src:'다나와 평균가',
   delta:20, discussion:true, result:null,
+  popPerArch:20,                          // sampled agents per archetype (16 × 20 = 320)
 };
 
 /* ════════════════════════════════════════════════════════════════
@@ -578,6 +586,40 @@ const state = {
 const sigmoid = x => 1/(1+Math.exp(-x));
 const clamp = (x,a,b) => Math.max(a,Math.min(b,x));
 const won = n => '₩'+Math.round(n).toLocaleString('ko-KR');
+
+/* ── seeded RNG (mulberry32) → reproducible sampling, no API/keys ── */
+function rng(seed){ let s=seed>>>0; return ()=>{ s=(s+0x6D2B79F5)|0; let t=Math.imul(s^(s>>>15),1|s); t=(t+Math.imul(t^(t>>>7),61|t))^t; return ((t^(t>>>14))>>>0)/4294967296; }; }
+// symmetric jitter centered on archetype value: stddev-ish spread, clamped to [0,1]
+function jit(rand, mu, spread){ const g=(rand()+rand()+rand()-1.5)/1.5; return clamp(mu + g*spread, 0.02, 0.98); }
+
+/* Build the sampled agent POPULATION from the 16 archetypes.
+   Each archetype = cluster centroid; we instantiate k agents per archetype with
+   small individualized draws (income · values · interest), matching report §3.1.3
+   (within-segment variance). Deterministic: same N ⇒ same population. */
+function buildPopulation(k){
+  const pop=[];
+  PERSONAS.forEach((p,ai)=>{
+    for(let j=0;j<k;j++){
+      const rand = rng(ai*100003 + j*7919 + 17);   // fixed seed per (archetype, instance)
+      pop.push({
+        archIdx:ai, arch:p,
+        income: Math.max(800000, p.income*(0.85+0.30*rand())),
+        values:{
+          gaseongbi: jit(rand,p.values.gaseongbi,0.08),
+          gasimbi:   jit(rand,p.values.gasimbi,0.08),
+          meaningOut:jit(rand,p.values.meaningOut,0.08),
+          brand:     jit(rand,p.values.brand,0.08),
+        },
+        interest:{
+          search:     jit(rand,p.interest.search,0.07),
+          experience: jit(rand,p.interest.experience,0.07),
+        },
+        age: p.age,
+      });
+    }
+  });
+  return pop;
+}
 
 function willingness(p, type, m){
   const interest = p.interest[type];
@@ -605,29 +647,37 @@ function meanQ(ws){ return ws.reduce((a,w)=>a+buyProb(w),0)/ws.length; }
 
 function simulate(){
   const type = state.type, m = 1 + state.delta/100;
-  const baseW = PERSONAS.map(p => willingness(p, type, 1));     // base price
-  const preW  = PERSONAS.map(p => willingness(p, type, m));     // raised price, stage 1
-  const Qbase = meanQ(baseW), Qpre = meanQ(preW);
+  const k = state.popPerArch;
+  const POP = buildPopulation(k);                  // N = 16 × k sampled agents
+  const N = POP.length;
 
-  // ── discussion (stage 2) ──
+  // ── population-level willingness (the honest sample) ──
+  const baseWp = POP.map(a => willingness(a, type, 1));
+  const preWp  = POP.map(a => willingness(a, type, m));
+  const Qbase = meanQ(baseWp), Qpre = meanQ(preWp);
+
+  // ── archetype-level willingness (cluster centroids, for UI flow/cards) ──
+  const baseW = PERSONAS.map(p => willingness(p, type, 1));
+  const preW  = PERSONAS.map(p => willingness(p, type, m));
+
   const dir = (type==='search') ? -1 : +1;     // search→cascade(↓), experience→bandwagon(↑)
-  let leaderIdx, postW = preW.slice(), forcedFlip = -1;
+  let leaderIdx, postW = preW.slice(), postWp = preWp.slice(), forcedFlip = -1;
 
   if(state.discussion){
     if(type==='search'){
-      // leader = most price-resistant skeptic (high 가성비, not buying)
       leaderIdx = PERSONAS.map((p,i)=>({i,score:p.values.gaseongbi - (isBuy(preW[i])?0.4:0)}))
                           .sort((a,b)=>b.score-a.score)[0].i;
     } else {
-      // leader = strongest advocate (brand+가심비, buying)
       leaderIdx = PERSONAS.map((p,i)=>({i,score:p.values.brand+p.values.gasimbi+(isBuy(preW[i])?0.4:0)}))
                           .sort((a,b)=>b.score-a.score)[0].i;
     }
-    // continuous conformity nudge toward seed (gentler for experience bandwagon)
-    const nudge = (type==='search') ? 0.12 : 0.085;
+    const nudge = (type==='search') ? 0.175 : 0.10;
+    // apply conformity nudge to the FULL population (drives the real metrics)
+    POP.forEach((a,i)=>{ if(a.archIdx!==leaderIdx) postWp[i] = clamp(preWp[i] + dir*nudge*conformity(a), -0.7, 1.35); });
+    // mirror nudge on archetype representatives (for the on-screen flow)
     PERSONAS.forEach((p,i)=>{ if(i!==leaderIdx) postW[i] = clamp(preW[i] + dir*nudge*conformity(p), -0.7, 1.35); });
 
-    // targeted "domino" flip → guarantees a visible, narratively-clean FLIP
+    // targeted "domino" flip on the archetype representatives → narratively-clean FLIP card
     if(type==='search'){
       const cands = PERSONAS.map((p,i)=>({i,margin:preW[i]-0.32}))
         .filter(o=>o.i!==leaderIdx && o.margin>0 && conformity(PERSONAS[o.i])>0.25)
@@ -642,35 +692,41 @@ function simulate(){
     }
   } else { leaderIdx = -1; }
 
-  const Qpost = meanQ(postW);
+  const Qpost = meanQ(postWp);
 
-  // ── metrics ──
+  // ── metrics (computed over the FULL sampled population) ──
   const eps = ((Qpre - Qbase)/Qbase)/(state.delta/100);
   const dQpre = Qbase - Qpre, dQpost = Qbase - Qpost;
   const wom = Math.abs(dQpre) < 1e-4 ? 1 : dQpost/dQpre;
 
-  // McNemar flips (discrete)
+  // McNemar flips across the full population
   let b=0,c=0;
-  PERSONAS.forEach((p,i)=>{
-    const a1=isBuy(preW[i]), a2=isBuy(postW[i]);
-    if(a1&&!a2) b++; if(!a1&&a2) c++;
-  });
+  POP.forEach((a,i)=>{ const a1=isBuy(preWp[i]), a2=isBuy(postWp[i]); if(a1&&!a2) b++; if(!a1&&a2) c++; });
   const chi = (b+c)===0 ? 0 : Math.pow(Math.abs(b-c)-1,2)/(b+c);
 
+  // per-archetype cohort buy-rates (how many of each archetype's k agents bought)
+  const cohort = PERSONAS.map((p,ai)=>{
+    let preBuys=0, postBuys=0;
+    for(let j=0;j<k;j++){ const idx=ai*k+j; if(isBuy(preWp[idx]))preBuys++; if(isBuy(postWp[idx]))postBuys++; }
+    return { preBuys, postBuys, k, preRate:preBuys/k, postRate:postBuys/k };
+  });
+
+  // archetype representatives for the on-screen flow
   const agents = PERSONAS.map((p,i)=>({
     p, baseW:baseW[i], preW:preW[i], postW:postW[i],
     preBuy:isBuy(preW[i]), postBuy:isBuy(postW[i]),
     preConf:conf(preW[i]), postConf:conf(postW[i]),
     isLeader:i===leaderIdx, flipped:isBuy(preW[i])!==isBuy(postW[i]),
+    cohort:cohort[i],
   }));
 
-  // demand curve
+  // demand curve (population-level)
   const curve = [];
   for(let mm=0.85; mm<=1.451; mm+=0.05){
-    curve.push({ m:mm, q:meanQ(PERSONAS.map(p=>willingness(p,type,mm))) });
+    curve.push({ m:mm, q:meanQ(POP.map(a=>willingness(a,type,mm))) });
   }
 
-  return { type,m,Qbase,Qpre,Qpost,eps,wom,dQpre,dQpost,b,c,chi,agents,leaderIdx,forcedFlip,curve };
+  return { type,m,N,k,Qbase,Qpre,Qpost,eps,wom,dQpre,dQpost,b,c,chi,agents,leaderIdx,forcedFlip,curve };
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -808,9 +864,13 @@ function renderPersonas(){
 /* console wiring */
 function syncConsole(){
   const np = state.basePrice*(1+state.delta/100);
+  const N = 16*state.popPerArch;
   $('#deltaBadge').innerHTML = (state.delta>=0?'+':'')+state.delta+'<small>%</small>';
   $('#priceLine').innerHTML = `${state.name} · <s>${won(state.basePrice)}</s> → <b>${won(np)}</b> <span style="color:var(--ink-3)">(${state.src})</span>`;
-  $('#cfgNote').textContent = `${state.type==='search'?'탐색재':'경험재'} · ${(state.delta>=0?'+':'')+state.delta}% · 토론 ${state.discussion?'ON':'OFF'} · 16 agents`;
+  if($('#popN')) $('#popN').innerHTML = N+'<span style="font-size:14px;color:var(--ink-3)"> 명</span>';
+  if($('#popK')) $('#popK').textContent = state.popPerArch;
+  if($('#popNlabel')) $('#popNlabel').textContent = N;
+  $('#cfgNote').textContent = `${state.type==='search'?'탐색재':'경험재'} · ${(state.delta>=0?'+':'')+state.delta}% · 토론 ${state.discussion?'ON':'OFF'} · N=${N} (16 아키타입 × ${state.popPerArch})`;
   $('#console').style.setProperty('--x','0');
 }
 function wireConsole(){
@@ -820,6 +880,14 @@ function wireConsole(){
       opt.classList.add('on');
       state.type=opt.dataset.type; state.name=opt.dataset.name;
       state.basePrice=+opt.dataset.price; state.src=opt.dataset.src;
+      syncConsole();
+    };
+  });
+  document.querySelectorAll('#popSeg .popopt').forEach(opt=>{
+    opt.onclick=()=>{
+      document.querySelectorAll('#popSeg .popopt').forEach(o=>o.classList.remove('on'));
+      opt.classList.add('on');
+      state.popPerArch=+opt.dataset.k;
       syncConsole();
     };
   });
@@ -908,7 +976,7 @@ async function run(){
   $('#flowBody').innerHTML = `
     <div class="stage" id="st1">
       <div class="stagelabel"><span class="b">STAGE 1</span><h3>개별 1차 의사결정</h3>
-      <span class="hint">JSON 강제 프롬프팅 · ${won(state.basePrice*R.m)} 자극</span></div>
+      <span class="hint">JSON 강제 프롬프팅 · N=${R.N} 모집단 · 대표 아키타입 표시</span></div>
       <div class="reactlist" id="react1"></div>
     </div>`;
   $('#st1').classList.add('show');
@@ -1037,9 +1105,9 @@ function renderResults(R){
       </div>
       <div class="metric">
         <div class="ml">의사결정 번복 (FLIP)</div>
-        <div class="mv">${R.b+R.c}<small> 명</small></div>
-        <div class="mt">구매→포기 ${R.b} · 포기→구매 ${R.c} · χ²=${R.chi.toFixed(2)}</div>
-        <div class="formula">McNemar · 본실험 N=1,920서 유의(&gt;3.84)</div>
+        <div class="mv">${R.b+R.c}<small> 명 / N=${R.N}</small></div>
+        <div class="mt">구매→포기 ${R.b} · 포기→구매 ${R.c} · χ²=${R.chi.toFixed(2)} ${R.chi>3.84?'<span class="up">유의</span>':'<span style="color:var(--ink-3)">(&lt;3.84)</span>'}</div>
+        <div class="formula">McNemar · N=${R.N} (16 아키타입 × ${R.k})</div>
       </div>
     </div>`;
 
@@ -1061,12 +1129,13 @@ function renderResults(R){
         <div><b style="font-size:12.5px">${a.p.name}</b><div style="font-size:10.5px;color:var(--ink-3)">${a.p.arch}</div></div></div></td>
       <td><span class="badge ${a.preBuy?'buy':'no'}" style="font-size:10.5px">${a.preBuy?'구매':'포기'}</span></td>
       <td>${state.discussion?(a.flipped?`<span class="badge flip" style="font-size:10.5px">⇄ ${a.postBuy?'구매':'포기'}</span>`:`<span class="badge ${a.postBuy?'buy':'no'}" style="font-size:10.5px">${a.postBuy?'구매':'포기'}</span>`):'<span style="color:var(--ink-3)">—</span>'}</td>
-      <td class="mono" style="font-size:11px">${a.postConf}/5</td>
+      <td class="mono" style="font-size:11px">${a.cohort.postBuys}/${a.cohort.k}<div style="font-size:9px;color:var(--ink-3)">${Math.round((state.discussion?a.cohort.postRate:a.cohort.preRate)*100)}%</div></td>
       <td class="rationale">${a.flipped?flipRationale(a):rationale(a.p,state.type,state.discussion?a.postBuy:a.preBuy,state.basePrice*R.m)}</td>
     </tr>`).join('');
   const table = `
+    <div style="font-size:11.5px;color:var(--ink-3);margin:0 0 8px">아래 표의 16행은 모집단 N=${R.N}명의 <b>아키타입(군집 중심)</b>이며, ‘코호트’ 열은 각 아키타입이 대표하는 ${R.k}명 중 구매자 수입니다.</div>
     <table class="rtable">
-      <thead><tr><th>페르소나</th><th>1차</th><th>2차(토론후)</th><th>확신도</th><th>판단 근거 (CoT)</th></tr></thead>
+      <thead><tr><th>아키타입 (대표)</th><th>1차</th><th>2차(토론후)</th><th>코호트 구매</th><th>판단 근거 (CoT)</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
 
